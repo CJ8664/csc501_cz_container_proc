@@ -147,7 +147,9 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
 void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
 {
         int idx;
+	printk("update_pid_for_cid trying to acquire lock");
         mutex_lock(&c_id_running_p_id_lock);
+	printk("update_pid_for_cid acquireD lock");
         for(idx = 0; idx < curr_cid_count; idx++)
         {
                 if(c_id_running_p_id[map2Dto1D(idx, 0, col_size)] == cid)
@@ -158,6 +160,7 @@ void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
                 }
         }
         mutex_unlock(&c_id_running_p_id_lock);
+	printk("update_pid_for_cid gave up  lock");
 }
 
 /**
