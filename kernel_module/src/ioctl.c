@@ -100,6 +100,29 @@ int is_container_intialized(long long unsigned cid)
     return 0;
 }
 
+long long unsigned get_next_pid(long long unsigned curr_pid) {
+    int i;
+    int index = -1;
+    int curr_cid = -1;
+    for(i = 0; i < curr_pid_count; i++){
+	if(curr_pid == p_id_to_c_id[map2Dto1D(i,0,col_size)]){
+	    index = i;
+	    break;
+	}
+    }
+    if(index != -1) {
+	index = (index+1) % curr_pid_count;
+	while(curr_cid != p_id_to_c_id[map2Dto1D(index,1,col_size)]){
+	    index = (index+1) % curr_pid_count;
+	}
+	// returning next pid
+	return p_id_to_c_id[map2Dto1D(index,0,col_size)];
+    } else {
+	printk("PID not found");
+	return 0;
+    }
+}
+
 /**
  * Delete the task in the container.
  * 
