@@ -129,7 +129,7 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
 
 
 // Update the PID for the CID with paramerters passed
-void update_pid_for_cid(cid, next_pid)
+void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
 {
     int idx;
     for(idx = 0; idx < curr_cid_count; idx++)
@@ -235,13 +235,13 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
     // Get task struct for next pid
     struct pid *pid_struct;
-    pid_struct = find_get_pid(p_id);
+    pid_struct = find_get_pid(next_pid);
     struct task_struct *task;
     task = pid_task(pid_struct,PIDTYPE_PID);
 
     // Schedule current process
     set_current_state(TASK_UNINTERRUPTIBLE);
-    update_pid_for_cid(curr_cid, next_pid)
+    update_pid_for_cid(curr_cid, next_pid);
     wake_up_process(task);    
     schedule();
         
