@@ -45,6 +45,28 @@
 #include <linux/sched.h>
 #include <linux/kthread.h>
 
+long long unsigned *p_id_to_c_id;
+int curr_pid_count = 0;
+const int col_size = 2;
+int map2Dto1D(int row, int col, int colSize){
+    if(col >= colSize){
+        return -1;
+    }
+    return row*colSize + col;
+}
+
+
+long long unsigned get_cid_for_pid(long long unsigned pid) {
+    int i;
+    for(i = 0; i < curr_pid_count; i++) {
+	if(p_id_to_c_id[map2Dto1D(i, 0, col_size)] == pid) {
+	    return p_id_to_c_id[map2Dto1D(i, 1, col_size)];
+	}
+    }
+    printk("Error: PID Not found for PID %llu \n", pid);
+    return 0;
+}
+
 /**
  * Delete the task in the container.
  * 
@@ -67,10 +89,18 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 int processor_container_create(struct processor_container_cmd __user *user_cmd)
 {
     struct processor_container_cmd *user_cmd_kernal;
+    curr_pid_count += 1;
+    // printk("Current PID count %d", curr_pid_count);
+    p_id_to_c_id = krealloc(p_id_to_c_id, curr_pid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
+
     user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
     copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
-    printk("CID value: %llu OP value: %llu", user_cmd_kernal->cid, user_cmd_kernal->op);
-    printk("PID val: %d\n", current->pid);
+    printk("\nCID value: %llu\n", user_cmd_kernal->cid);
+    printk("\nPID val: %d\n", current->pid);
+    p_id_to_c_id[map2Dto1D(curr_pid_count-1, 0, col_size)] = current->pid;
+    p_id_to_c_id[map2Dto1D(curr_pid_count-1, 1, col_size)] = user_cmd_kernal->cid;
+    printk("\nStored PID in 0,0: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 0, col_size)]);
+    printk("\nStored CID in 0,1: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 1, col_size)]);
     return 0;
 }
 
@@ -82,6 +112,8 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
+    long long unsigned current_pid = current->pid;
+    printk("\nFound for PID: %llu CID: %llu \n", current_pid,  get_cid_for_pid(current_pid));
     return 0;
 }
 
