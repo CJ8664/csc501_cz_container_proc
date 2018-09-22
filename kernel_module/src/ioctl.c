@@ -225,7 +225,9 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         printk("WAking up the process %d", task->pid);
         printk("WAking up the original process %d", next_pid);
         // Schedule current process
+        printk("Updating map in del");
         update_pid_for_cid(curr_cid, next_pid);
+        printk("Updated map in del");
         wake_up_process(task);
         return 0;
 }
@@ -242,7 +244,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 {
         // STEP 1
         printk("Acquiring lock Step 1\n");
-        mutex_lock(&create_lock);
+        // mutex_lock(&create_lock);
         struct processor_container_cmd *user_cmd_kernal;
         curr_pid_count += 1;
         // printk("Current PID count %d", curr_pid_count);
@@ -259,13 +261,13 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         printk("\nStored CID in 0,1: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 1, col_size)]);
         mutex_unlock(&p_id_to_c_id_lock);
 
-        mutex_unlock(&create_lock);
+        // mutex_unlock(&create_lock);
         printk("Lock Released step 1\n");
 
 
         // STEP 2
         printk("acquiring lock step 2\n");
-        mutex_lock(&container_lock);
+        // mutex_lock(&container_lock);
         printk("Lock acq %llu", current->pid);
 
         mutex_lock(&c_id_running_p_id_lock);
@@ -276,7 +278,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
                 c_id_running_p_id = krealloc(c_id_running_p_id, curr_cid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;
-                mutex_unlock(&container_lock);
+                // mutex_unlock(&container_lock);
                 mutex_unlock(&c_id_running_p_id_lock);
                 printk("Lock released step 2\n");
         } else if(!is_container_intialized(user_cmd_kernal->cid)) {
@@ -285,14 +287,14 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
                 c_id_running_p_id = krealloc(c_id_running_p_id, curr_cid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;
-                mutex_unlock(&container_lock);
+                // mutex_unlock(&container_lock);
                 mutex_unlock(&c_id_running_p_id_lock);
                 printk("Lock released step 2\n");
         }
         else
         {
                 // release contanier lock
-                mutex_unlock(&container_lock);
+                // mutex_unlock(&container_lock);
                 mutex_unlock(&c_id_running_p_id_lock);
                 printk("Lock released step 2\n");
                 // sleep
@@ -326,7 +328,9 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
         // Schedule current process
         set_current_state(TASK_UNINTERRUPTIBLE);
+        printk("Updating map in switch");
         update_pid_for_cid(curr_cid, next_pid);
+        printk("Updatid map in switch");
         wake_up_process(task);
         schedule();
 
