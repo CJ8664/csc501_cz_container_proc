@@ -172,14 +172,19 @@ void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
 int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 {
         long long unsigned current_pid = current->pid;
-        long long unsigned curr_cid = get_cid_for_pid(current_pid);
+	struct processor_container_cmd *user_cmd_kernal;
+	user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
+	copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
+        long long unsigned curr_cid = user_cmd_kernal->cid;
         printk("\nin Delete Found for PID: %llu CID: %llu \n", current_pid, curr_cid);
 
         long long unsigned next_pid = get_next_pid(current_pid);
         printk("Next PID = %lld\n", next_pid);
 
         // Remove the exiting process from mapping p_id_to_c_id
+	printk("Acquiring p_id_to_c_id_lock\n");
         mutex_lock(&p_id_to_c_id_lock);
+	printk("Acquired p_id_to_c_id_lock\n");
         long long unsigned *temp_p_id_to_c_id = kmalloc((curr_pid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
         int old;
         int new = 0;
@@ -190,14 +195,18 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
                 temp_p_id_to_c_id[map2Dto1D(new, 0, col_size)] = p_id_to_c_id[map2Dto1D(old, 0, col_size)];
                 temp_p_id_to_c_id[map2Dto1D(new, 1, col_size)] = p_id_to_c_id[map2Dto1D(old, 1, col_size)];
         }
+	printk("Will free p_id_to_c_id\n");
         kfree(p_id_to_c_id);
         p_id_to_c_id = temp_p_id_to_c_id;
         curr_pid_count--;
+	printk("unlocking p_id_to_c_id_lock\n");
         mutex_unlock(&p_id_to_c_id_lock);
 
         if(current_pid == next_pid) {
                 // Remove entry from mapping c_id_running_p_id
+		printk("Acquiring lock c_id_running_p_id_lock\n");
                 mutex_lock(&c_id_running_p_id_lock);
+		printk("Acquired lock c_id_running_p_id_lock\n");
                 long long unsigned *temp_c_id_running_p_id = kmalloc((curr_cid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
                 int old;
                 int new = 0;
@@ -209,9 +218,11 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
                         temp_c_id_running_p_id[map2Dto1D(new, 1, col_size)] = c_id_running_p_id[map2Dto1D(old, 1, col_size)];
                 }
 
+		printk("Will free c_id_running_p_id\n");
                 kfree(c_id_running_p_id);
                 c_id_running_p_id = temp_c_id_running_p_id;
                 curr_cid_count--;
+		printk("unlocking c_id_running_p_id_lock\n");
                 mutex_unlock(&c_id_running_p_id_lock);
                 return 0;
         }
