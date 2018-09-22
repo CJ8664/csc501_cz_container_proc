@@ -103,14 +103,15 @@ int is_container_intialized(long long unsigned cid)
 long long unsigned get_next_pid(long long unsigned curr_pid) {
     int i;
     int index = -1;
-    int curr_cid = -1;
+    long long unsigned curr_cid = 0;
     for(i = 0; i < curr_pid_count; i++){
 	if(curr_pid == p_id_to_c_id[map2Dto1D(i,0,col_size)]){
 	    index = i;
-            curr_cid = p_id_to_c_id[map2Dto1D(i,1,col_size)]
+            curr_cid = p_id_to_c_id[map2Dto1D(i,1,col_size)];
 	    break;
 	}
     }
+    //printk("CID: %llu, INDEX: %d", curr_cid, index); 
     if(index != -1) {
 	index = (index+1) % curr_pid_count;
 	while(curr_cid != p_id_to_c_id[map2Dto1D(index,1,col_size)]){
