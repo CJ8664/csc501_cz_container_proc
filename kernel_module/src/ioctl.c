@@ -88,8 +88,9 @@ long long unsigned get_cid_for_pid(long long unsigned pid) {
 
 int is_container_intialized(long long unsigned cid)
 {
-    int idx = 0;
-    for(idx; idx < curr_cid_count; idx++)
+    printk("IN is container\n");
+    int idx;
+    for(idx = 0; idx < curr_cid_count; idx++)
     {
     	if(c_id_running_p_id[map2Dto1D(idx, 0, col_size)] == cid)
         {
@@ -142,20 +143,22 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 
     // STEP 2
     printk("acquiring lock step 2\n");
-    mutex_lock(&container_lock);
+    //mutex_lock(&container_lock);
+    printk("Lock acq %llu", current->pid);
     if(curr_cid_count == 0 || !is_container_intialized(user_cmd_kernal->cid))
     {
+        printk("Enterd in if\n");
         c_id_running_p_id = krealloc(c_id_running_p_id, curr_cid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
         curr_cid_count++;
         c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
         c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;  
-        mutex_unlock(&container_lock);
+        //mutex_unlock(&container_lock);
         printk("Lock released step 2\n");
     }    
     else
     {   
         // release contanier lock
-        mutex_unlock(&container_lock);
+        //mutex_unlock(&container_lock);
         printk("Lock released step 2\n");
         // sleep
     }
