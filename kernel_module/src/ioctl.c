@@ -177,7 +177,7 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 
         // Remove the exiting process from mapping p_id_to_c_id
         mutex_lock(&p_id_to_c_id_lock);
-        long long unsigned *temp_p_id_to_c_id = kmalloc(p_id_to_c_id, (curr_pid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
+        long long unsigned *temp_p_id_to_c_id = kmalloc((curr_pid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
         int old;
         int new = 0;
         for(old = 0; old < curr_pid_count; old++) {
@@ -195,7 +195,7 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         if(current_pid == next_pid) {
                 // Remove entry from mapping c_id_running_p_id
                 mutex_lock(&c_id_running_p_id_lock);
-                long long unsigned *temp_c_id_running_p_id = kmalloc(c_id_running_p_id, (curr_cid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
+                long long unsigned *temp_c_id_running_p_id = kmalloc((curr_cid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
                 int old;
                 int new = 0;
                 for(old = 0; old < curr_cid_count; old++) {

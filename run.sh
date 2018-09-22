@@ -6,5 +6,5 @@ sudo make install
 read -p "Press any key..."
 cd ..
 sudo dmesg -C
-./test.sh 2 2 2
+./test.sh 1 2
 sudo dmesg
