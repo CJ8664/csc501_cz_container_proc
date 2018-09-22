@@ -151,6 +151,57 @@ void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
  */
 int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 {
+    long long unsigned current_pid = current->pid;
+    long long unsigned curr_cid = get_cid_for_pid(current_pid);
+    printk("\nin Delete Found for PID: %llu CID: %llu \n", current_pid, curr_cid);
+
+    long long unsigned next_pid = get_next_pid(current_pid);
+    printk("Next PID = %lld\n", next_pid);
+
+    // Remove the exiting process from mapping p_id_to_c_id
+    long long unsigned *temp_p_id_to_c_id = kmalloc(p_id_to_c_id, (curr_pid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
+    int old;
+    int new = 0;
+    for(old = 0; old < curr_pid_count; old++){
+        if(p_id_to_c_id[map2Dto1D(old, 0, col_size)] == current_pid){
+            continue;
+        }
+        temp_p_id_to_c_id[map2Dto1D(new, 0, col_size)] = p_id_to_c_id[map2Dto1D(old, 0, col_size)];
+        temp_p_id_to_c_id[map2Dto1D(new, 1, col_size)] = p_id_to_c_id[map2Dto1D(old, 1, col_size)];
+    } 
+    kfree(p_id_to_c_id);
+    p_id_to_c_id = temp_p_id_to_c_id;
+
+    if(current_pid == next_pid){
+	// Remove entry from mapping c_id_running_p_id
+
+        long long unsigned *temp_c_id_running_p_id = kmalloc(c_id_running_p_id, (curr_cid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
+    int old;
+    int new = 0;
+    for(old = 0; old < curr_cid_count; old++){
+        if(c_id_running_p_id[map2Dto1D(old, 0, col_size)] == curr_cid){
+            continue;
+        }
+        temp_c_id_running_p_id[map2Dto1D(new, 0, col_size)] = c_id_running_p_id[map2Dto1D(old, 0, col_size)];
+        temp_c_id_running_p_id[map2Dto1D(new, 1, col_size)] = c_id_running_p_id[map2Dto1D(old, 1, col_size)];
+    }
+    kfree(c_id_running_p_id);
+    c_id_running_p_id = temp_c_id_running_p_id;
+
+        return 0;
+    }
+
+    // Get task struct for next pid
+    struct pid *pid_struct;
+    pid_struct = find_get_pid(next_pid);
+    struct task_struct *task;
+    task = pid_task(pid_struct,PIDTYPE_PID);
+
+    // Schedule current process
+    set_current_state(TASK_UNINTERRUPTIBLE);
+    update_pid_for_cid(curr_cid, next_pid);
+    wake_up_process(task);
+    schedule();
     return 0;
 }
 
