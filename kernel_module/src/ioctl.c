@@ -219,11 +219,11 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         struct task_struct *task;
         task = pid_task(pid_struct,PIDTYPE_PID);
 
+        printk("WAking up the process %d", task->pid);
+        printk("WAking up the original process %d", next_pid);
         // Schedule current process
-        set_current_state(TASK_UNINTERRUPTIBLE);
         update_pid_for_cid(curr_cid, next_pid);
         wake_up_process(task);
-        schedule();
         return 0;
 }
 
