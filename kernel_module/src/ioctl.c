@@ -107,6 +107,7 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
     for(i = 0; i < curr_pid_count; i++){
 	if(curr_pid == p_id_to_c_id[map2Dto1D(i,0,col_size)]){
 	    index = i;
+            curr_cid = p_id_to_c_id[map2Dto1D(i,1,col_size)]
 	    break;
 	}
     }
@@ -118,7 +119,7 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
 	// returning next pid
 	return p_id_to_c_id[map2Dto1D(index,0,col_size)];
     } else {
-	printk("PID not found");
+	printk("PID not found\n");
 	return 0;
     }
 }
