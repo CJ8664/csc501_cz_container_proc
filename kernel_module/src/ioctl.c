@@ -45,9 +45,28 @@
 #include <linux/sched.h>
 #include <linux/kthread.h>
 
+// Lock for create entry point STEP 1
+static DEFINE_MUTEX(create_lock);
+
+// Lock for container init STEP 2
+static DEFINE_MUTEX(container_lock);
+
+// Array that stores the mapping pid -> cid
 long long unsigned *p_id_to_c_id;
+
+// Array that stores current process running in cid
+long long unsigned *c_id_running_p_id;
+
+// Total number of processes currently in system (from all containers) 
 int curr_pid_count = 0;
+
+// Total number of containers initialized
+int curr_cid_count = 0;
+
+// Two col (key,val) const
 const int col_size = 2;
+
+// Util function to get value at arr[row][col]
 int map2Dto1D(int row, int col, int colSize){
     if(col >= colSize){
         return -1;
@@ -55,7 +74,7 @@ int map2Dto1D(int row, int col, int colSize){
     return row*colSize + col;
 }
 
-
+// Util function that gets the cid given a pid
 long long unsigned get_cid_for_pid(long long unsigned pid) {
     int i;
     for(i = 0; i < curr_pid_count; i++) {
@@ -64,6 +83,19 @@ long long unsigned get_cid_for_pid(long long unsigned pid) {
 	}
     }
     printk("Error: PID Not found for PID %llu \n", pid);
+    return 0;
+}
+
+int is_container_intialized(long long unsigned cid)
+{
+    int idx = 0;
+    for(idx; idx < curr_cid_count; idx++)
+    {
+    	if(c_id_running_p_id[map2Dto1D(idx, 0, col_size)] == cid)
+        {
+	    return 1;
+	}
+    }
     return 0;
 }
 
@@ -88,6 +120,9 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_create(struct processor_container_cmd __user *user_cmd)
 {
+    // STEP 1
+    printk("Acquiring lock Step 1\n");
+    mutex_lock(&create_lock);
     struct processor_container_cmd *user_cmd_kernal;
     curr_pid_count += 1;
     // printk("Current PID count %d", curr_pid_count);
@@ -101,6 +136,29 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
     p_id_to_c_id[map2Dto1D(curr_pid_count-1, 1, col_size)] = user_cmd_kernal->cid;
     printk("\nStored PID in 0,0: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 0, col_size)]);
     printk("\nStored CID in 0,1: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 1, col_size)]);
+    mutex_unlock(&create_lock);
+    printk("Lock Released step 1\n");
+
+
+    // STEP 2
+    printk("acquiring lock step 2\n");
+    mutex_lock(&container_lock);
+    if(curr_cid_count == 0 || !is_container_intialized(user_cmd_kernal->cid))
+    {
+        c_id_running_p_id = krealloc(c_id_running_p_id, curr_cid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
+        curr_cid_count++;
+        c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
+        c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;  
+        mutex_unlock(&container_lock);
+        printk("Lock released step 2\n");
+    }    
+    else
+    {   
+        // release contanier lock
+        mutex_unlock(&container_lock);
+        printk("Lock released step 2\n");
+        // sleep
+    }
     return 0;
 }
 
