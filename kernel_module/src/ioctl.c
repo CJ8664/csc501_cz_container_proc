@@ -101,13 +101,16 @@ int is_container_intialized(long long unsigned cid)
 {
         printk("IN is container\n");
         int idx;
+        mutex_lock(&c_id_running_p_id_lock);
         for(idx = 0; idx < curr_cid_count; idx++)
         {
                 if(c_id_running_p_id[map2Dto1D(idx, 0, col_size)] == cid)
                 {
+                        mutex_unlock(&c_id_running_p_id_lock);
                         return 1;
                 }
         }
+        mutex_unlock(&c_id_running_p_id_lock);
         return 0;
 }
 
@@ -130,9 +133,11 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
                         index = (index+1) % curr_pid_count;
                 }
                 // returning next pid
+                mutex_unlock(&p_id_to_c_id_lock);
                 return p_id_to_c_id[map2Dto1D(index,0,col_size)];
         } else {
                 printk("PID not found\n");
+                mutex_unlock(&p_id_to_c_id_lock);
                 return 0;
         }
 }
@@ -142,6 +147,7 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
 void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
 {
         int idx;
+        mutex_lock(&c_id_running_p_id_lock);
         for(idx = 0; idx < curr_cid_count; idx++)
         {
                 if(c_id_running_p_id[map2Dto1D(idx, 0, col_size)] == cid)
@@ -151,6 +157,7 @@ void update_pid_for_cid(long long unsigned cid, long long unsigned next_pid)
                         break;
                 }
         }
+        mutex_unlock(&c_id_running_p_id_lock);
 }
 
 /**
@@ -169,6 +176,7 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         printk("Next PID = %lld\n", next_pid);
 
         // Remove the exiting process from mapping p_id_to_c_id
+        mutex_lock(&p_id_to_c_id_lock);
         long long unsigned *temp_p_id_to_c_id = kmalloc(p_id_to_c_id, (curr_pid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
         int old;
         int new = 0;
@@ -182,10 +190,11 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         kfree(p_id_to_c_id);
         p_id_to_c_id = temp_p_id_to_c_id;
         curr_pid_count--;
+        mutex_unlock(&p_id_to_c_id_lock);
 
         if(current_pid == next_pid) {
                 // Remove entry from mapping c_id_running_p_id
-
+                mutex_lock(&c_id_running_p_id_lock);
                 long long unsigned *temp_c_id_running_p_id = kmalloc(c_id_running_p_id, (curr_cid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
                 int old;
                 int new = 0;
@@ -200,7 +209,7 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
                 kfree(c_id_running_p_id);
                 c_id_running_p_id = temp_c_id_running_p_id;
                 curr_cid_count--;
-
+                mutex_unlock(&c_id_running_p_id_lock);
                 return 0;
         }
 
@@ -234,6 +243,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         struct processor_container_cmd *user_cmd_kernal;
         curr_pid_count += 1;
         // printk("Current PID count %d", curr_pid_count);
+        mutex_lock(&p_id_to_c_id_lock);
         p_id_to_c_id = krealloc(p_id_to_c_id, curr_pid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
 
         user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
@@ -244,6 +254,8 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         p_id_to_c_id[map2Dto1D(curr_pid_count-1, 1, col_size)] = user_cmd_kernal->cid;
         printk("\nStored PID in 0,0: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 0, col_size)]);
         printk("\nStored CID in 0,1: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 1, col_size)]);
+        mutex_unlock(&p_id_to_c_id_lock);
+
         mutex_unlock(&create_lock);
         printk("Lock Released step 1\n");
 
@@ -253,6 +265,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         mutex_lock(&container_lock);
         printk("Lock acq %llu", current->pid);
 
+        mutex_lock(&c_id_running_p_id_lock);
         if(curr_cid_count == 0)
         {
                 printk("Enterd in if\n");
@@ -261,6 +274,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;
                 mutex_unlock(&container_lock);
+                mutex_unlock(&c_id_running_p_id_lock);
                 printk("Lock released step 2\n");
         } else if(!is_container_intialized(user_cmd_kernal->cid)) {
                 printk("Enterd in if\n");
@@ -269,17 +283,20 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
                 c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;
                 mutex_unlock(&container_lock);
+                mutex_unlock(&c_id_running_p_id_lock);
                 printk("Lock released step 2\n");
         }
         else
         {
                 // release contanier lock
                 mutex_unlock(&container_lock);
+                mutex_unlock(&c_id_running_p_id_lock);
                 printk("Lock released step 2\n");
                 // sleep
                 set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule();
         }
+
         return 0;
 }
 
