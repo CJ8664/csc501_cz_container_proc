@@ -45,6 +45,8 @@
 #include <linux/sched.h>
 #include <linux/kthread.h>
 
+#include <linux/pid_namespace.h>
+
 // Lock for create entry point STEP 1
 static DEFINE_MUTEX(create_lock);
 
@@ -125,6 +127,22 @@ long long unsigned get_next_pid(long long unsigned curr_pid) {
     }
 }
 
+
+// Update the PID for the CID with paramerters passed
+void update_pid_for_cid(cid, next_pid)
+{
+    int idx;
+    for(idx = 0; idx < curr_cid_count; idx++)
+    {
+        if(c_id_running_p_id[map2Dto1D(idx, 0, col_size)] == cid)
+        {
+            c_id_running_p_id[map2Dto1D(idx, 1, col_size)] = next_pid;
+            printk("Updated CID: %llu with New PID: %llu", cid, next_pid);
+            break;
+        }
+    }
+}
+
 /**
  * Delete the task in the container.
  * 
@@ -194,6 +212,8 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         mutex_unlock(&container_lock);
         printk("Lock released step 2\n");
         // sleep
+        set_current_state(TASK_UNINTERRUPTIBLE);
+        schedule();
     }
     return 0;
 }
@@ -207,9 +227,24 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
     long long unsigned current_pid = current->pid;
-    printk("\nFound for PID: %llu CID: %llu \n", current_pid,  get_cid_for_pid(current_pid));
+    long long unsigned curr_cid = get_cid_for_pid(current_pid);
+    printk("\nFound for PID: %llu CID: %llu \n", current_pid, curr_cid);
+
     long long unsigned next_pid = get_next_pid(current_pid);
     printk("Next PID = %lld\n", next_pid);
+
+    // Get task struct for next pid
+    struct pid *pid_struct;
+    pid_struct = find_get_pid(p_id);
+    struct task_struct *task;
+    task = pid_task(pid_struct,PIDTYPE_PID);
+
+    // Schedule current process
+    set_current_state(TASK_UNINTERRUPTIBLE);
+    update_pid_for_cid(curr_cid, next_pid)
+    wake_up_process(task);    
+    schedule();
+        
     return 0;
 }
 
