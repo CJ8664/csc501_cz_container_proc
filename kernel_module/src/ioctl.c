@@ -206,6 +206,8 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
     long long unsigned current_pid = current->pid;
     printk("\nFound for PID: %llu CID: %llu \n", current_pid,  get_cid_for_pid(current_pid));
+    long long unsigned next_pid = get_next_pid(current_pid);
+    printk("Next PID = %lld\n", next_pid);
     return 0;
 }
 
