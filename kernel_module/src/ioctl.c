@@ -139,6 +139,7 @@ __u64 get_cid_for_pid(int pid){
 
         int idx;
         __u64 cid = -1;
+        printk("In get_cid_for_pid");
         mutex_lock(&pid_cid_list_lock);
 
         struct cid_node *temp_cid_node;
