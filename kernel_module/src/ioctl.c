@@ -254,7 +254,8 @@ int get_next_pid(int pid) {
         return next_pid;
 }
 
-void assign_pid_to_cid(pid, cid){
+void assign_pid_to_cid(int pid, __u64 cid){
+
         int idx;
         mutex_lock(&pid_cid_list_lock);
         for(idx = 0; idx < total_pid; idx++) {
@@ -271,7 +272,6 @@ void assign_pid_to_cid(pid, cid){
                    pid_cid_map_list[idx].pid == pid &&
                    pid_cid_map_list[idx].is_valid) {
                         pid_cid_map_list[idx].cid_has_pid = 1;
-                        assigned = 1;
                         break;
                 }
         }
@@ -279,6 +279,7 @@ void assign_pid_to_cid(pid, cid){
 }
 
 int is_container_available(pid, cid) {
+
         int idx;
         int available = 1;
         int pid_assigned_to = -1;
@@ -295,7 +296,7 @@ int is_container_available(pid, cid) {
                 available = 1;
         }
         mutex_unlock(&pid_cid_list_lock);
-        return available
+        return available;
 }
 
 /**
