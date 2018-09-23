@@ -81,7 +81,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
           struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
 
           // Init head for PID list within the
-          LIST_HEAD(&(temp_cid_node->running_pids));
+          LIST_HEAD((temp_cid_node->running_pids));
 
           // Temp PID node
           struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
@@ -115,7 +115,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
               struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
 
               // Init head for PID list within the
-              LIST_HEAD(&(temp_cid_node->running_pids));
+              LIST_HEAD((temp_cid_node->running_pids));
 
               // Temp PID node
               struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
