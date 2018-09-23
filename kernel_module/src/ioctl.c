@@ -59,12 +59,12 @@ struct pid_node {
 
 struct cid_node {
   __u64 cid;
+  struct pid_node *running_pids;
   struct list_head list;
-  struct pid_node running_pids;
 };
 
 // Actual list that stores the CIDS and in it corresponding PIDS
-struct cid_node cid_list;
+struct cid_node *cid_list;
 
 // List size
 __u64 total_cids = 0;
@@ -75,23 +75,17 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
         if(total_cids == 0) {
 
           // Initalize the First ever Container with CID
-          LIST_HEAD(cid_list);
-
           // Temp CID node
-          struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+          cid_list = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+          cid_list->cid = cid;
 
           // Init head for PID list within the
-          LIST_HEAD((temp_cid_node->running_pids));
-
+          cid_list->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
           // Temp PID node
-          struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-          temp_pid_node->pid = pid;
+          cid_list->running_pids->pid = pid;
 
-          // Adding to Internal PID list
-          list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids.list));
-
-          // Addting to Main CID list
-          list_add_tail(&(temp_cid_node->list), &(cid_list.list));
+          INIT_LIST_HEAD(&(cid_list->running_pids));
+          INIT_LIST_HEAD(&cid_list);
 
         } else {
 
