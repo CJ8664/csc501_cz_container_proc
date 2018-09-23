@@ -86,9 +86,9 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
           total_cids++;
           INIT_LIST_HEAD(&(cid_list->running_pids->list));
           INIT_LIST_HEAD(&cid_list->list);
-
+          printk("Created new CID: %llu and PID: %d", cid_list->cid, cid_list->running_pids->pid);
         } else {
-
+          printk("Else\n");
           struct cid_node *temp_cid_node;
 
           int cid_node_exists = 0;
@@ -105,24 +105,23 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
               cid_node_exists = 1;
               break;
             }
-            if(!cid_node_exists) {
+          }
+          if(!cid_node_exists) {
 
-              // Temp CID node
-              struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
-              temp_cid_node->cid = cid;
+            // Temp CID node
+            struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+            temp_cid_node->cid = cid;
 
-              // Init head for PID list within the
-              temp_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-              // Temp PID node
-              temp_cid_node->running_pids->pid = pid;
+            // Init head for PID list within the
+            temp_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+            // Temp PID node
+            temp_cid_node->running_pids->pid = pid;
 
-              INIT_LIST_HEAD(&(cid_list->running_pids->list));
+            INIT_LIST_HEAD(&(cid_list->running_pids->list));
 
-              // Addting to Main CID list
-              list_add_tail(&(temp_cid_node->list), &(cid_list->list));
-              total_cids++;
-            }
-
+            // Addting to Main CID list
+            list_add_tail(&(temp_cid_node->list), &(cid_list->list));
+            total_cids++;
           }
 
         }
