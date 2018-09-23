@@ -174,6 +174,7 @@ typedef struct {
         int pid;
         __u64 cid;
         int is_valid;
+        int cid_has_pid;
 } pid_cid_map;
 
 // List size
@@ -190,6 +191,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
         pid_cid_map_list[total_pid - 1].pid = pid;
         pid_cid_map_list[total_pid - 1].cid = cid;
         pid_cid_map_list[total_pid - 1].is_valid = 1;
+        pid_cid_map_list[total_pid - 1].cid_has_pid = 0;
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -252,6 +254,50 @@ int get_next_pid(int pid) {
         return next_pid;
 }
 
+void assign_pid_to_cid(pid, cid){
+        int idx;
+        mutex_lock(&pid_cid_list_lock);
+        for(idx = 0; idx < total_pid; idx++) {
+                if(pid_cid_map_list[idx].cid == cid &&
+                   pid_cid_map_list[idx].is_valid &&
+                   pid_cid_map_list[idx].cid_has_pid) {
+                        pid_cid_map_list[idx].cid_has_pid = 0;
+                        break;
+                }
+        }
+        // Assign container to given PID
+        for(idx = 0; idx < total_pid; idx++) {
+                if(pid_cid_map_list[idx].cid == cid &&
+                   pid_cid_map_list[idx].pid == pid &&
+                   pid_cid_map_list[idx].is_valid) {
+                        pid_cid_map_list[idx].cid_has_pid = 1;
+                        assigned = 1;
+                        break;
+                }
+        }
+        mutex_unlock(&pid_cid_list_lock);
+}
+
+int is_container_available(pid, cid) {
+        int idx;
+        int available = 1;
+        int pid_assigned_to = -1;
+        mutex_lock(&pid_cid_list_lock);
+        for(idx = 0; idx < total_pid; idx++) {
+                if(pid_cid_map_list[idx].cid == cid &&
+                   pid_cid_map_list[idx].is_valid &&
+                   pid_cid_map_list[idx].cid_has_pid) {
+                        pid_assigned_to = pid_cid_map_list[idx].pid;
+                        available = 0;
+                }
+        }
+        if(!available && pid_assigned_to == pid) {
+                available = 1;
+        }
+        mutex_unlock(&pid_cid_list_lock);
+        return available
+}
+
 /**
  * Delete the task in the container.
  *
@@ -262,6 +308,12 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 {
         // Get the current PID and CID
         struct processor_container_cmd *user_cmd_kernal;
+        int next_pid = get_next_pid(current->pid);
+
+        // To get the task_struct for next pid
+        struct pid *pid_struct;
+        struct task_struct *next_task;
+
         user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
         copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
 
@@ -270,74 +322,13 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 
         // Remove PID-CID mapping
         remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
-        // long long unsigned current_pid = current->pid;
-        // struct processor_container_cmd *user_cmd_kernal;
-        // user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
-        // copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
-        // long long unsigned curr_cid = user_cmd_kernal->cid;
-        // printk("\nin Delete Found for PID: %llu CID: %llu \n", current_pid, curr_cid);
-        //
-        // long long unsigned next_pid = get_next_pid(current_pid);
-        // printk("Next PID = %lld\n", next_pid);
-        //
-        // // Remove the exiting process from mapping p_id_to_c_id
-        // printk("Acquiring p_id_to_c_id_lock\n");
-        // mutex_lock(&p_id_to_c_id_lock);
-        // printk("Acquired p_id_to_c_id_lock\n");
-        // long long unsigned *temp_p_id_to_c_id = kmalloc((curr_pid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
-        // int old;
-        // int new = 0;
-        // for(old = 0; old < curr_pid_count; old++) {
-        //         if(p_id_to_c_id[map2Dto1D(old, 0, col_size)] == current_pid) {
-        //                 continue;
-        //         }
-        //         temp_p_id_to_c_id[map2Dto1D(new, 0, col_size)] = p_id_to_c_id[map2Dto1D(old, 0, col_size)];
-        //         temp_p_id_to_c_id[map2Dto1D(new, 1, col_size)] = p_id_to_c_id[map2Dto1D(old, 1, col_size)];
-        // }
-        // printk("Will free p_id_to_c_id\n");
-        // kfree(p_id_to_c_id);
-        // p_id_to_c_id = temp_p_id_to_c_id;
-        // curr_pid_count--;
-        // printk("unlocking p_id_to_c_id_lock\n");
-        // mutex_unlock(&p_id_to_c_id_lock);
-        //
-        // if(current_pid == next_pid) {
-        //         // Remove entry from mapping c_id_running_p_id
-        //         printk("Acquiring lock c_id_running_p_id_lock\n");
-        //         mutex_lock(&c_id_running_p_id_lock);
-        //         printk("Acquired lock c_id_running_p_id_lock\n");
-        //         long long unsigned *temp_c_id_running_p_id = kmalloc((curr_cid_count -1 ) * 2 * sizeof(long long unsigned), GFP_KERNEL);
-        //         int old;
-        //         int new = 0;
-        //         for(old = 0; old < curr_cid_count; old++) {
-        //                 if(c_id_running_p_id[map2Dto1D(old, 0, col_size)] == curr_cid) {
-        //                         continue;
-        //                 }
-        //                 temp_c_id_running_p_id[map2Dto1D(new, 0, col_size)] = c_id_running_p_id[map2Dto1D(old, 0, col_size)];
-        //                 temp_c_id_running_p_id[map2Dto1D(new, 1, col_size)] = c_id_running_p_id[map2Dto1D(old, 1, col_size)];
-        //         }
-        //
-        //         printk("Will free c_id_running_p_id\n");
-        //         kfree(c_id_running_p_id);
-        //         c_id_running_p_id = temp_c_id_running_p_id;
-        //         curr_cid_count--;
-        //         printk("unlocking c_id_running_p_id_lock\n");
-        //         mutex_unlock(&c_id_running_p_id_lock);
-        //         return 0;
-        // }
-        //
-        // // Get task struct for next pid
-        // struct pid *pid_struct;
-        // pid_struct = find_get_pid(next_pid);
-        // struct task_struct *task;
-        // task = pid_task(pid_struct,PIDTYPE_PID);
-        //
-        // printk("WAking up the process %d", task->pid);
-        // printk("WAking up the original process %d", next_pid);
-        // // Schedule current process
-        // printk("Updating map in del");
-        // update_pid_for_cid(curr_cid, next_pid);
-        // printk("Updated map in del");
+
+        // Get task struct for next pid
+        pid_struct = find_get_pid(next_pid);
+        next_task = pid_task(pid_struct, PIDTYPE_PID);
+
+        // // Schedule current process and wake up next process
+        // assign_pid_to_cid(next_pid, user_cmd_kernal->cid);
         // wake_up_process(task);
         return 0;
 }
@@ -363,43 +354,13 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         // Add the PID-CID to mapping
         add_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
 
-        // // STEP 2
-        // printk("acquiring lock step 2\n");
-        // // mutex_lock(&container_lock);
-        // printk("Lock acq %llu", current->pid);
-        //
-        // mutex_lock(&c_id_running_p_id_lock);
-        // if(curr_cid_count == 0)
-        // {
-        //         printk("Enterd in if\n");
-        //         curr_cid_count++;
-        //         c_id_running_p_id = krealloc(c_id_running_p_id, curr_cid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
-        //         c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
-        //         c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;
-        //         // mutex_unlock(&container_lock);
-        //         mutex_unlock(&c_id_running_p_id_lock);
-        //         printk("Lock released step 2\n");
-        // } else if(!is_container_intialized(user_cmd_kernal->cid)) {
-        //         printk("Enterd in if\n");
-        //         curr_cid_count++;
-        //         c_id_running_p_id = krealloc(c_id_running_p_id, curr_cid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
-        //         c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 0, col_size)] = user_cmd_kernal->cid;
-        //         c_id_running_p_id[map2Dto1D(curr_cid_count - 1, 1, col_size)] = current->pid;
-        //         // mutex_unlock(&container_lock);
-        //         mutex_unlock(&c_id_running_p_id_lock);
-        //         printk("Lock released step 2\n");
-        // }
-        // else
-        // {
-        //         // release contanier lock
-        //         // mutex_unlock(&container_lock);
-        //         mutex_unlock(&c_id_running_p_id_lock);
-        //         printk("Lock released step 2\n");
-        //         // sleep
+        // if(is_container_available(current->pid, user_cmd_kernal->cid)) {
+        //         assign_pid_to_cid(current->pid, user_cmd_kernal->cid);
+        // } else {
+        //         // The container is occupied by some other processes
         //         set_current_state(TASK_UNINTERRUPTIBLE);
         //         schedule();
         // }
-
         return 0;
 }
 
@@ -427,11 +388,9 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         pid_struct = find_get_pid(next_pid);
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
-        // // Schedule current process
+        // // Schedule current process and wake up next process
         // set_current_state(TASK_UNINTERRUPTIBLE);
-        // printk("Updating map in switch");
-        // update_pid_for_cid(curr_cid, next_pid);
-        // printk("Updatid map in switch");
+        // assign_pid_to_cid(next_pid, curr_cid);
         // wake_up_process(task);
         // schedule();
 
