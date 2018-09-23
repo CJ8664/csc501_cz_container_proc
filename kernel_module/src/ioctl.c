@@ -84,7 +84,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
           // Temp PID node
           cid_list->running_pids->pid = pid;
           total_cids++;
-          INIT_LIST_HEAD(&(cid_list->running_pids->list));
+          INIT_LIST_HEAD(&(cid_list->running_pids)->list);
           INIT_LIST_HEAD(&cid_list->list);
           printk("Created new CID: %llu and PID: %d", cid_list->cid, cid_list->running_pids->pid);
         } else {
