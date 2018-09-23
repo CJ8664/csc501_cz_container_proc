@@ -146,7 +146,7 @@ __u64 get_cid_for_pid(int pid){
           printk("CID %llu: ", temp_cid_node->cid);
 
           struct pid_node *temp_pid_node;
-          list_for_each_entry(temp_pid_node, &temp_cid_node->running_pids, list) {
+          list_for_each_entry(temp_pid_node, &temp_cid_node->running_pids->list, list) {
             printk("PID %d: ", temp_pid_node->pid);
             if(temp_pid_node->pid == pid){
               printk("CID %llu for PID %d: ", temp_cid_node->cid, pid);
