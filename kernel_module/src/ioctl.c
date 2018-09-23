@@ -278,7 +278,7 @@ void assign_pid_to_cid(int pid, __u64 cid){
         mutex_unlock(&pid_cid_list_lock);
 }
 
-int is_container_available(pid, cid) {
+int is_container_available(int pid, __u64 cid) {
 
         int idx;
         int available = 1;
