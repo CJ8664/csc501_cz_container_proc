@@ -330,7 +330,7 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 
         // Schedule current process and wake up next process
         assign_pid_to_cid(next_pid, user_cmd_kernal->cid);
-        wake_up_process(task);
+        wake_up_process(next_task);
         return 0;
 }
 
@@ -391,8 +391,8 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
         // Schedule current process and wake up next process
         set_current_state(TASK_UNINTERRUPTIBLE);
-        assign_pid_to_cid(next_pid, curr_cid);
-        wake_up_process(task);
+        assign_pid_to_cid(next_pid, cid);
+        wake_up_process(next_task);
         schedule();
 
         return 0;
