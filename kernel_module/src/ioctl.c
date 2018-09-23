@@ -232,28 +232,28 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         return 0;
         // Get the current PID and CID
         struct processor_container_cmd *user_cmd_kernal;
-        int next_pid = get_next_pid(current->pid);
-
-        // To get the task_struct for next pid
-        struct pid *pid_struct;
-        struct task_struct *next_task;
-
-        user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
-        copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
-
-        // Display the current PID and CID
-        printk("Calling DELETE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
-
-        // Remove PID-CID mapping
-        remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
-
-        // Get task struct for next pid
-        pid_struct = find_get_pid(next_pid);
-        next_task = pid_task(pid_struct, PIDTYPE_PID);
-
-        // Schedule current process and wake up next process
-        assign_pid_to_cid(next_pid, user_cmd_kernal->cid);
-        wake_up_process(next_task);
+        // int next_pid = get_next_pid(current->pid);
+        //
+        // // To get the task_struct for next pid
+        // struct pid *pid_struct;
+        // struct task_struct *next_task;
+        //
+        // user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
+        // copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
+        //
+        // // Display the current PID and CID
+        // printk("Calling DELETE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+        //
+        // // Remove PID-CID mapping
+        // remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
+        //
+        // // Get task struct for next pid
+        // pid_struct = find_get_pid(next_pid);
+        // next_task = pid_task(pid_struct, PIDTYPE_PID);
+        //
+        // // Schedule current process and wake up next process
+        // assign_pid_to_cid(next_pid, user_cmd_kernal->cid);
+        // wake_up_process(next_task);
         return 0;
 }
 
