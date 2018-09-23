@@ -418,7 +418,7 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
 
         // Get and display the next PID
-        int next_pid = get_next_pid(current_pid);
+        int next_pid = get_next_pid(current->pid);
         printk("Next PID: %d\n", next_pid);
 
         // Get task struct for next pid
