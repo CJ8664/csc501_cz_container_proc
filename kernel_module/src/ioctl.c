@@ -80,11 +80,12 @@ void add_ll(__u64 new_cid, int new_pid) {
     cid_list->running_pids->next = NULL;
   } else {
     struct cid_node *prev_cid_node = NULL;
-    struct cid_node *temp_cid_node;
+    struct cid_node *temp_cid_node = cid_list;
     int found = 0;
     while (temp_cid_node != NULL) {
       if(temp_cid_node->cid == new_cid) {
         found = 1;
+        break;
       }
       prev_cid_node = temp_cid_node;
       temp_cid_node = temp_cid_node->next;
@@ -104,6 +105,20 @@ void add_ll(__u64 new_cid, int new_pid) {
   }
 }
 
+void print_ll() {
+  struct cid_node *temp_cid_node = cid_list;
+  while (temp_cid_node != NULL) {
+    printk("CID %llu: \n", temp_cid_node->cid);
+    struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+
+    while(temp_pid_node != NULL) {
+      printk("PID %d: \n", temp_pid_node->pid);
+      temp_pid_node = temp_pid_node->next;
+    }
+    
+    temp_cid_node = temp_cid_node->next;
+  }
+}
 
 // Function to add PID-CID mapping
 void add_pid_cid_mapping(int pid, __u64 cid) {
