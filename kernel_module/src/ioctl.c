@@ -328,9 +328,9 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         pid_struct = find_get_pid(next_pid);
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
-        // // Schedule current process and wake up next process
-        // assign_pid_to_cid(next_pid, user_cmd_kernal->cid);
-        // wake_up_process(task);
+        // Schedule current process and wake up next process
+        assign_pid_to_cid(next_pid, user_cmd_kernal->cid);
+        wake_up_process(task);
         return 0;
 }
 
@@ -355,13 +355,13 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         // Add the PID-CID to mapping
         add_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
 
-        // if(is_container_available(current->pid, user_cmd_kernal->cid)) {
-        //         assign_pid_to_cid(current->pid, user_cmd_kernal->cid);
-        // } else {
-        //         // The container is occupied by some other processes
-        //         set_current_state(TASK_UNINTERRUPTIBLE);
-        //         schedule();
-        // }
+        if(is_container_available(current->pid, user_cmd_kernal->cid)) {
+                assign_pid_to_cid(current->pid, user_cmd_kernal->cid);
+        } else {
+                // The container is occupied by some other processes
+                set_current_state(TASK_UNINTERRUPTIBLE);
+                schedule();
+        }
         return 0;
 }
 
@@ -389,11 +389,11 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         pid_struct = find_get_pid(next_pid);
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
-        // // Schedule current process and wake up next process
-        // set_current_state(TASK_UNINTERRUPTIBLE);
-        // assign_pid_to_cid(next_pid, curr_cid);
-        // wake_up_process(task);
-        // schedule();
+        // Schedule current process and wake up next process
+        set_current_state(TASK_UNINTERRUPTIBLE);
+        assign_pid_to_cid(next_pid, curr_cid);
+        wake_up_process(task);
+        schedule();
 
         return 0;
 }
