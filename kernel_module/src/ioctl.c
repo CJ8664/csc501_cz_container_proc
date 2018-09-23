@@ -78,17 +78,17 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
           LIST_HEAD(cid_list);
 
           // Temp CID node
-          struct cid_node *temp_cid_node = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+          struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
 
           // Init head for PID list within the
-          LIST_HEAD(temp_cid_node->running_pids);
+          LIST_HEAD(&(temp_cid_node->running_pids));
 
           // Temp PID node
-          struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node));
+          struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
           temp_pid_node->pid = pid;
 
           // Adding to Internal PID list
-          list_add_tail(&(temp_pid_node->list), &(running_pids.list));
+          list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids.list));
 
           // Addting to Main CID list
           list_add_tail(&(temp_cid_node->list), &(cid_list.list));
@@ -102,7 +102,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
             if(temp_cid_node->cid == cid) {
 
               // Add PID node to existing Container
-              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node));
+              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
               temp_pid_node->pid = pid;
               // Adding to Internal PID list
               list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids.list));
@@ -112,17 +112,17 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
             if(!cid_node_exists) {
 
               // Temp CID node
-              struct cid_node *temp_cid_node = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+              struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
 
               // Init head for PID list within the
-              LIST_HEAD(temp_cid_node->running_pids);
+              LIST_HEAD(&(temp_cid_node->running_pids));
 
               // Temp PID node
-              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node));
+              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
               temp_pid_node->pid = pid;
 
               // Adding to Internal PID list
-              list_add_tail(&(temp_pid_node->list), &(running_pids.list));
+              list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids.list));
 
               // Addting to Main CID list
               list_add_tail(&(temp_cid_node->list), &(cid_list.list));
