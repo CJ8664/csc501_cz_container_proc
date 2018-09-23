@@ -179,13 +179,25 @@ __u64 get_cid_for_pid(int pid_to_find){
 }
 
 // Function to get next PID for a given PID
-int get_next_pid(int pid) {
+int get_next_pid(__u64 cid, int pid) {
 
-        int idx = -1;
-        __u64 cid = -1;
         int next_pid = -1;
         mutex_lock(&pid_cid_list_lock);
 
+        struct cid_node *temp_cid_node = cid_list;
+        while (temp_cid_node != NULL) {
+
+          if(temp_cid_node->cid == cid) {
+            break;
+          }
+
+          temp_cid_node = temp_cid_node->next;
+        }
+        if(temp_cid_node->running_pids->next != NULL) {
+          next_pid = temp_cid_node->running_pids->next->pid;
+        } else {
+          next_pid = pid;
+        }
         mutex_unlock(&pid_cid_list_lock);
         return next_pid;
 }
@@ -290,8 +302,9 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
         printk("CID: %llu -> PID: %d\n",  cid, current->pid);
+        int next_pid = get_next_pid(cid, current->pid);
+        printk("Next PID: %d\n", next_pid);
         return 0;
-        int next_pid = get_next_pid(current->pid);
 
         // To get the task_struct for next pid
         struct pid *pid_struct;
