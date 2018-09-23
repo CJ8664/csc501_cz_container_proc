@@ -54,77 +54,63 @@ static DEFINE_MUTEX(pid_cid_list_lock);
 // Node that stores PID
 struct pid_node {
         int pid;
-        struct list_head list;
+        struct pid_node *next;
 };
 
 struct cid_node {
   __u64 cid;
   struct pid_node *running_pids;
-  struct list_head list;
+  struct cid_node *next;
 };
 
 // Actual list that stores the CIDS and in it corresponding PIDS
-struct cid_node *cid_list;
+struct cid_node *cid_list = NULL;
 
 // List size
 __u64 total_cids = 0;
 
+// Linked List functions
+void add_ll(__u64 new_cid, int new_pid) {
+  if(cid_list == NULL) {
+    cid_list = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+    cid_list->cid = new_cid;
+    cid_list->next = NULL;
+    cid_list->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+    cid_list->running_pids->pid = new_pid;
+    cid_list->running_pids->next = NULL;
+  } else {
+    struct cid_node *prev_cid_node = NULL;
+    struct cid_node *temp_cid_node;
+    int found = 0;
+    while (temp_cid_node != NULL) {
+      if(temp_cid_node->cid == new_cid) {
+        found = 1;
+      }
+      prev_cid_node = temp_cid_node;
+      temp_cid_node = temp_cid_node->next;
+    }
+
+    if(!found) {
+      struct cid_node *new_cid_node = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+      new_cid_node->cid = new_cid;
+      new_cid_node->next = NULL;
+      new_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+      new_cid_node->running_pids->pid = new_pid;
+      new_cid_node->running_pids->next = NULL;
+
+      prev_cid_node->next = new_cid_node;
+    }
+
+  }
+}
+
+
 // Function to add PID-CID mapping
 void add_pid_cid_mapping(int pid, __u64 cid) {
         mutex_lock(&pid_cid_list_lock);
-        if(total_cids == 0) {
 
-          // Initalize the First ever Container with CID
-          // Temp CID node
-          cid_list = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
-          cid_list->cid = cid;
+        add_ll(cid, pid);
 
-          // Init head for PID list within the
-          cid_list->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-          // Temp PID node
-          cid_list->running_pids->pid = pid;
-          total_cids++;
-          INIT_LIST_HEAD(&(cid_list->running_pids)->list);
-          INIT_LIST_HEAD(&cid_list->list);
-          printk("Created new CID: %llu and PID: %d", cid_list->cid, cid_list->running_pids->pid);
-        } else {
-          printk("Else\n");
-          struct cid_node *temp_cid_node;
-
-          int cid_node_exists = 0;
-
-          list_for_each_entry(temp_cid_node, &(cid_list->list), list) {
-            printk("Iterating over CID: %llu \n", temp_cid_node->cid);
-            if(temp_cid_node->cid == cid) {
-
-              // Add PID node to existing Container
-              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-              temp_pid_node->pid = pid;
-              // Adding to Internal PID list
-              list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids->list));
-              cid_node_exists = 1;
-              break;
-            }
-          }
-          if(!cid_node_exists) {
-
-            // Temp CID node
-            struct cid_node *temp_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
-            temp_cid_node->cid = cid;
-
-            // Init head for PID list within the
-            temp_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-            // Temp PID node
-            temp_cid_node->running_pids->pid = pid;
-
-            INIT_LIST_HEAD(&(cid_list->running_pids)->list);
-
-            // Addting to Main CID list
-            list_add_tail(&(temp_cid_node->list), &(cid_list->list));
-            total_cids++;
-          }
-
-        }
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -140,22 +126,7 @@ __u64 get_cid_for_pid(int pid){
 
         int idx;
         __u64 cid = -1;
-        printk("In get_cid_for_pid %d", total_cids);
         mutex_lock(&pid_cid_list_lock);
-
-        struct cid_node *temp_cid_node;
-        list_for_each_entry(temp_cid_node, &cid_list->list, list) {
-          printk("CID %llu: ", temp_cid_node->cid);
-
-          struct pid_node *temp_pid_node;
-          list_for_each_entry(temp_pid_node, &(temp_cid_node->running_pids)->list, list) {
-            printk("PID %d: ", temp_pid_node->pid);
-            if(temp_pid_node->pid == pid){
-              printk("CID %llu for PID %d: ", temp_cid_node->cid, pid);
-            }
-          }
-          printk("\n");
-        }
 
         mutex_unlock(&pid_cid_list_lock);
         return cid;
