@@ -116,6 +116,21 @@ void add_ll(__u64 new_cid, int new_pid) {
       new_cid_node->running_pids->next = NULL;
 
       prev_cid_node->next = new_cid_node;
+    } else { // Found 1
+
+      struct pid_node *prev_pid_node = NULL;
+      struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+
+      while (temp_pid_node != NULL) {
+        prev_pid_node = temp_pid_node;
+        temp_pid_node = temp_pid_node->next;
+
+      }
+      struct pid_node *new_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+      new_pid_node->next = NULL;
+      new_pid_node->pid = new_pid;
+
+      prev_pid_node->next = new_pid_node;
     }
     print_ll();
   }
