@@ -189,28 +189,20 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
         pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(pid_cid_map), GFP_KERNEL);
         pid_cid_map_list[total_pid - 1].pid = pid;
         pid_cid_map_list[total_pid - 1].cid = cid;
+        pid_cid_map_list[total_pid - 1].is_valid = 1;
         mutex_unlock(&pid_cid_list_lock);
 }
 
 // Function to remove PID-CID mapping
 void remove_pid_cid_mapping(int pid, __u64 cid) {
         mutex_lock(&pid_cid_list_lock);
-        total_pid++;
-        pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(pid_cid_map), GFP_KERNEL);
-        temp_pid_cid_map_list = krealloc(pid_cid_map_list, (total_pid - 1) * sizeof(pid_cid_map), GFP_KERNEL);
-
-        int old;
-        int new = 0;
-        for(old = 0; old < total_pid; old++) {
-                if(pid_cid_map_list[old].pid == pid) {
-                        continue;
+        int idx;
+        for(idx = 0; idx < total_pid; idx++) {
+                if(pid_cid_map_list[idx].pid == pid) {
+                        pid_cid_map_list[idx].is_valid = 0;
+                        break;
                 }
-                temp_pid_cid_map_list[new] = pid_cid_map_list[old];
         }
-
-        kfree(pid_cid_map_list);
-        pid_cid_map_list = temp_pid_cid_map_list;
-        curr_pid_count--;
         mutex_unlock(&pid_cid_list_lock);
 }
 
