@@ -463,7 +463,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
-        Get the current PID and CID
+        // Get the current PID and CID
         __u64 cid = get_cid_for_pid(current_pid);
 
         // Display the current PID and CID
