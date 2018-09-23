@@ -69,7 +69,6 @@ struct cid_node cid_list;
 // List size
 __u64 total_cids = 0;
 
-
 // Function to add PID-CID mapping
 void add_pid_cid_mapping(int pid, __u64 cid) {
         mutex_lock(&pid_cid_list_lock);
@@ -192,6 +191,7 @@ int is_container_available(int pid, __u64 cid) {
  */
 int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 {
+        return 0;
         // Get the current PID and CID
         struct processor_container_cmd *user_cmd_kernal;
         int next_pid = get_next_pid(current->pid);
@@ -239,6 +239,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 
         // Add the PID-CID to mapping
         add_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
+        return 0;
 
         if(is_container_available(current->pid, user_cmd_kernal->cid)) {
                 assign_pid_to_cid(current->pid, user_cmd_kernal->cid);
@@ -247,6 +248,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
                 set_current_state(TASK_UNINTERRUPTIBLE);
                 schedule();
         }
+        kfree(user_cmd_kernal);
         return 0;
 }
 
@@ -258,6 +260,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
+        return 0;
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
         int next_pid = get_next_pid(current->pid);
