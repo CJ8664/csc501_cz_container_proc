@@ -141,6 +141,20 @@ __u64 get_cid_for_pid(int pid){
         __u64 cid = -1;
         mutex_lock(&pid_cid_list_lock);
 
+        struct cid_node *temp_cid_node;
+        list_for_each_entry(temp_cid_node, &cid_list->list, list) {
+          printk("CID %llu: ", temp_cid_node->cid);
+
+          struct pid_node *temp_pid_node;
+          list_for_each_entry(temp_pid_node, &temp_cid_node->running_pids, list) {
+            printk("PID %d: ", temp_pid_node->pid);
+            if(temp_pid_node->pid == pid){
+              printk("CID %llu for PID %d: ", temp_cid_node->cid, pid);
+            }
+          }
+          printk("\n");
+        }
+
         mutex_unlock(&pid_cid_list_lock);
         return cid;
 }
@@ -253,9 +267,10 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
-        return 0;
+
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
+        return 0;
         int next_pid = get_next_pid(current->pid);
 
         // To get the task_struct for next pid
