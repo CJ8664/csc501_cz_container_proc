@@ -192,6 +192,28 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
         mutex_unlock(&pid_cid_list_lock);
 }
 
+// Function to remove PID-CID mapping
+void remove_pid_cid_mapping(int pid, __u64 cid) {
+        mutex_lock(&pid_cid_list_lock);
+        total_pid++;
+        pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(pid_cid_map), GFP_KERNEL);
+        temp_pid_cid_map_list = krealloc(pid_cid_map_list, (total_pid - 1) * sizeof(pid_cid_map), GFP_KERNEL);
+
+        int old;
+        int new = 0;
+        for(old = 0; old < total_pid; old++) {
+                if(pid_cid_map_list[old].pid == pid) {
+                        continue;
+                }
+                temp_pid_cid_map_list[new] = pid_cid_map_list[old];
+        }
+
+        kfree(pid_cid_map_list);
+        pid_cid_map_list = temp_pid_cid_map_list;
+        curr_pid_count--;
+        mutex_unlock(&pid_cid_list_lock);
+}
+
 // Function to get the CID of give PID
 // int get_cid_from_pid(int pid){
 //         mutex_lock(&pid_cid_list_lock);
@@ -253,7 +275,10 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
 
         // Display the current PID and CID
-        printk("Calling CREATE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+        printk("Calling DELETE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+
+        // Remove PID-CID mapping
+        remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
         // long long unsigned current_pid = current->pid;
         // struct processor_container_cmd *user_cmd_kernal;
         // user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
@@ -344,7 +369,8 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         // Display the current PID and CID
         printk("Calling CREATE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
 
-
+        // Add the PID-CID to mapping
+        add_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
         // // mutex_lock(&create_lock);
         // struct processor_container_cmd *user_cmd_kernal;
         // curr_pid_count += 1;
