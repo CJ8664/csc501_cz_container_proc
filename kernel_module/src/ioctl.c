@@ -100,7 +100,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
               struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
               temp_pid_node->pid = pid;
               // Adding to Internal PID list
-              list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids.list));
+              list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids->list));
               cid_node_exists = 1;
               break;
             }
@@ -118,7 +118,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
               INIT_LIST_HEAD(&(cid_list->running_pids->list));
 
               // Addting to Main CID list
-              list_add_tail(&(temp_cid_node->list), &(cid_list.list));
+              list_add_tail(&(temp_cid_node->list), &(cid_list->list));
             }
 
           }
