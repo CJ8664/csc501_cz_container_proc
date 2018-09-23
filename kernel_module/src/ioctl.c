@@ -153,11 +153,26 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
         mutex_unlock(&pid_cid_list_lock);
 }
 
-__u64 get_cid_for_pid(int pid){
+__u64 get_cid_for_pid(int pid_to_find){
 
         int idx;
         __u64 cid = -1;
         mutex_lock(&pid_cid_list_lock);
+
+        struct cid_node *temp_cid_node = cid_list;
+        while (temp_cid_node != NULL) {
+          struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+
+          while(temp_pid_node != NULL) {
+            if(pid_to_find == temp_pid_node->pid) {
+               cid = temp_cid_node->cid;
+               break;
+            }
+            temp_pid_node = temp_pid_node->next;
+          }
+
+          temp_cid_node = temp_cid_node->next;
+        }
 
         mutex_unlock(&pid_cid_list_lock);
         return cid;
@@ -274,6 +289,7 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
+        printk("CID: %llu -> PID: %d\n",  cid, current->pid);
         return 0;
         int next_pid = get_next_pid(current->pid);
 
