@@ -93,7 +93,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
 
           int cid_node_exists = 0;
 
-          list_for_each_entry(temp_cid_node, &cid_list->list, list) {
+          list_for_each_entry(temp_cid_node, &(cid_list->list), list) {
             printk("Iterating over CID: %llu \n", temp_cid_node->cid);
             if(temp_cid_node->cid == cid) {
 
