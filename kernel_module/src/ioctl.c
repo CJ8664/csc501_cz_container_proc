@@ -241,7 +241,7 @@ int get_next_pid(int pid) {
         }
         if(idx != -1) {
                 idx = (idx+1) % total_pid;
-                while(cid != pid_cid_map_list[idx].cid | !pid_cid_map_list[idx].is_valid) {
+                while(cid != pid_cid_map_list[idx].cid || !pid_cid_map_list[idx].is_valid) {
                         idx = (idx+1) % total_pid;
                 }
                 next_pid = pid_cid_map_list[idx].pid;
@@ -411,20 +411,20 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
-        // Get the current PID and CID
+        // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
+        int next_pid = get_next_pid(current->pid);
+
+        // To get the task_struct for next pid
+        struct pid *pid_struct;
+        struct task_struct *next_task;
 
         // Display the current PID and CID
         printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
-
-        // Get and display the next PID
-        int next_pid = get_next_pid(current->pid);
         printk("Next PID: %d\n", next_pid);
 
         // Get task struct for next pid
-        struct pid *pid_struct;
         pid_struct = find_get_pid(next_pid);
-        struct task_struct *next_task;
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
         // // Schedule current process
