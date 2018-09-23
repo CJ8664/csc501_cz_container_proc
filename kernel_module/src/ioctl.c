@@ -101,11 +101,11 @@ void add_ll(__u64 new_cid, int new_pid) {
 
       prev_cid_node->next = new_cid_node;
     }
-
+    print_ll();
   }
 }
 
-void print_ll() {
+void print_ll(void) {
   struct cid_node *temp_cid_node = cid_list;
   while (temp_cid_node != NULL) {
     printk("CID %llu: \n", temp_cid_node->cid);
@@ -115,7 +115,7 @@ void print_ll() {
       printk("PID %d: \n", temp_pid_node->pid);
       temp_pid_node = temp_pid_node->next;
     }
-    
+
     temp_cid_node = temp_cid_node->next;
   }
 }
