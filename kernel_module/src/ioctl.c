@@ -195,8 +195,9 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
 
 // Function to remove PID-CID mapping
 void remove_pid_cid_mapping(int pid, __u64 cid) {
-        mutex_lock(&pid_cid_list_lock);
+
         int idx;
+        mutex_lock(&pid_cid_list_lock);
         for(idx = 0; idx < total_pid; idx++) {
                 if(pid_cid_map_list[idx].pid == pid) {
                         pid_cid_map_list[idx].is_valid = 0;
@@ -207,16 +208,17 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
 }
 
 __u64 get_cid_for_pid(int pid){
-        mutex_lock(&pid_cid_list_lock);
+
         int idx;
         __u64 cid = -1;
+        mutex_lock(&pid_cid_list_lock);
         for(idx = 0; idx < total_pid; idx++) {
                 if(pid_cid_map_list[idx].pid == pid) {
                         cid = pid_cid_map_list[idx].cid;
                         break;
                 }
         }
-        if(c == -1) {
+        if(cid == -1) {
                 printk("PID not available");
                 cid = 0;
         }
@@ -464,7 +466,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
         // Get the current PID and CID
-        __u64 cid = get_cid_for_pid(current_pid);
+        __u64 cid = get_cid_for_pid(current->pid);
 
         // Display the current PID and CID
         printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
