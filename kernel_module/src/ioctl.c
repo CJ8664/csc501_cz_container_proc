@@ -186,9 +186,9 @@ pid_cid_map *pid_cid_map_list;
 void add_pid_cid_mapping(int pid, __u64 cid) {
         mutex_lock(&pid_cid_list_lock);
         total_pid++;
-        pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(struct pid_cid_map), GFP_KERNEL);
-        pid_cid_map_list[total_pid - 1]->pid = pid;
-        pid_cid_map_list[total_pid - 1]->cid = cid;
+        pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(pid_cid_map), GFP_KERNEL);
+        pid_cid_map_list[total_pid - 1].pid = pid;
+        pid_cid_map_list[total_pid - 1].cid = cid;
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -415,10 +415,10 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
         // Get the current PID and CID
-        long long unsigned curr_cid = get_cid_for_pid(current_pid);
+        // long long unsigned curr_cid = get_cid_for_pid(current_pid);
 
         // Display the current PID and CID
-        printk("Calling CREATE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+        // printk("Calling CREATE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
 
         // long long unsigned current_pid = current->pid;
         // long long unsigned curr_cid = get_cid_for_pid(current_pid);
