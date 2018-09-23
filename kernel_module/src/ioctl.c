@@ -51,43 +51,95 @@
 // Mutex for performing any updates on pid_cid_list
 static DEFINE_MUTEX(pid_cid_list_lock);
 
-// Node of the array
-typedef struct {
+// Node that stores PID
+struct pid_node {
         int pid;
-        __u64 cid;
-        int is_valid;
-        int cid_has_pid;
-} pid_cid_map;
+        struct list_head list;
+};
+
+struct cid_node {
+  __u64 cid;
+  struct list_head list;
+  struct pid_node running_pids;
+};
+
+// Actual list that stores the CIDS and in it corresponding PIDS
+struct cid_node cid_list;
 
 // List size
-__u64 total_pid = 0;
+__u64 total_cids = 0;
 
-// Actual list
-pid_cid_map *pid_cid_map_list;
 
 // Function to add PID-CID mapping
 void add_pid_cid_mapping(int pid, __u64 cid) {
         mutex_lock(&pid_cid_list_lock);
-        total_pid++;
-        pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(pid_cid_map), GFP_KERNEL);
-        pid_cid_map_list[total_pid - 1].pid = pid;
-        pid_cid_map_list[total_pid - 1].cid = cid;
-        pid_cid_map_list[total_pid - 1].is_valid = 1;
-        pid_cid_map_list[total_pid - 1].cid_has_pid = 0;
+        if(total_cids == 0) {
+
+          // Initalize the First ever Container with CID
+          LIST_HEAD(cid_list);
+
+          // Temp CID node
+          struct cid_node *temp_cid_node = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+
+          // Init head for PID list within the
+          LIST_HEAD(temp_cid_node->running_pids);
+
+          // Temp PID node
+          struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node));
+          temp_pid_node->pid = pid;
+
+          // Adding to Internal PID list
+          list_add_tail(&(temp_pid_node->list), &(running_pids.list));
+
+          // Addting to Main CID list
+          list_add_tail(&(temp_cid_node->list), &(cid_list.list));
+
+        } else {
+
+          struct cid_node *temp_cid_node;
+          int cid_node_exists = 0;
+
+          list_for_each_entry(temp_cid_node, &cid_list, list) {
+            if(temp_cid_node->cid == cid) {
+
+              // Add PID node to existing Container
+              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node));
+              temp_pid_node->pid = pid;
+              // Adding to Internal PID list
+              list_add_tail(&(temp_pid_node->list), &(temp_cid_node->running_pids.list));
+              cid_node_exists = 1;
+              break;
+            }
+            if(!cid_node_exists) {
+
+              // Temp CID node
+              struct cid_node *temp_cid_node = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+
+              // Init head for PID list within the
+              LIST_HEAD(temp_cid_node->running_pids);
+
+              // Temp PID node
+              struct pid_node *temp_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node));
+              temp_pid_node->pid = pid;
+
+              // Adding to Internal PID list
+              list_add_tail(&(temp_pid_node->list), &(running_pids.list));
+
+              // Addting to Main CID list
+              list_add_tail(&(temp_cid_node->list), &(cid_list.list));
+            }
+
+          }
+
+        }
         mutex_unlock(&pid_cid_list_lock);
 }
 
 // Function to remove PID-CID mapping
 void remove_pid_cid_mapping(int pid, __u64 cid) {
 
-        int idx;
         mutex_lock(&pid_cid_list_lock);
-        for(idx = 0; idx < total_pid; idx++) {
-                if(pid_cid_map_list[idx].pid == pid) {
-                        pid_cid_map_list[idx].is_valid = 0;
-                        break;
-                }
-        }
+
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -96,16 +148,7 @@ __u64 get_cid_for_pid(int pid){
         int idx;
         __u64 cid = -1;
         mutex_lock(&pid_cid_list_lock);
-        for(idx = 0; idx < total_pid; idx++) {
-                if(pid_cid_map_list[idx].pid == pid) {
-                        cid = pid_cid_map_list[idx].cid;
-                        break;
-                }
-        }
-        if(cid == -1) {
-                printk("PID not available");
-                cid = 0;
-        }
+
         mutex_unlock(&pid_cid_list_lock);
         return cid;
 }
@@ -117,21 +160,7 @@ int get_next_pid(int pid) {
         __u64 cid = -1;
         int next_pid = -1;
         mutex_lock(&pid_cid_list_lock);
-        for(idx = 0; idx < total_pid; idx++) {
-                if(pid_cid_map_list[idx].pid == pid) {
-                        cid = pid_cid_map_list[idx].cid;
-                        break;
-                }
-        }
-        if(idx != -1) {
-                idx = (idx+1) % total_pid;
-                while(cid != pid_cid_map_list[idx].cid || !pid_cid_map_list[idx].is_valid) {
-                        idx = (idx+1) % total_pid;
-                }
-                next_pid = pid_cid_map_list[idx].pid;
-        } else {
-                printk("PID not found\n");
-        }
+
         mutex_unlock(&pid_cid_list_lock);
         return next_pid;
 }
@@ -140,23 +169,7 @@ void assign_pid_to_cid(int pid, __u64 cid){
 
         int idx;
         mutex_lock(&pid_cid_list_lock);
-        for(idx = 0; idx < total_pid; idx++) {
-                if(pid_cid_map_list[idx].cid == cid &&
-                   pid_cid_map_list[idx].is_valid &&
-                   pid_cid_map_list[idx].cid_has_pid) {
-                        pid_cid_map_list[idx].cid_has_pid = 0;
-                        break;
-                }
-        }
-        // Assign container to given PID
-        for(idx = 0; idx < total_pid; idx++) {
-                if(pid_cid_map_list[idx].cid == cid &&
-                   pid_cid_map_list[idx].pid == pid &&
-                   pid_cid_map_list[idx].is_valid) {
-                        pid_cid_map_list[idx].cid_has_pid = 1;
-                        break;
-                }
-        }
+
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -166,17 +179,7 @@ int is_container_available(int pid, __u64 cid) {
         int available = 1;
         int pid_assigned_to = -1;
         mutex_lock(&pid_cid_list_lock);
-        for(idx = 0; idx < total_pid; idx++) {
-                if(pid_cid_map_list[idx].cid == cid &&
-                   pid_cid_map_list[idx].is_valid &&
-                   pid_cid_map_list[idx].cid_has_pid) {
-                        pid_assigned_to = pid_cid_map_list[idx].pid;
-                        available = 0;
-                }
-        }
-        if(!available && pid_assigned_to == pid) {
-                available = 1;
-        }
+
         mutex_unlock(&pid_cid_list_lock);
         return available;
 }
