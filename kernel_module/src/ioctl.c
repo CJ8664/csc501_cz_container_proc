@@ -226,65 +226,31 @@ __u64 get_cid_for_pid(int pid){
         return cid;
 }
 
-// // Function to remove PID-CID mapping
-// void get_next_pid(int pid, __u64 cid) {
-//         mutex_lock(&pid_cid_list_lock);
-//         int idx;
-//         for(idx = 0; idx < total_pid; idx++) {
-//                 if(pid_cid_map_list[idx].pid == pid) {
-//                         pid_cid_map_list[idx].is_valid = 0;
-//                         break;
-//                 }
-//         }
-//         mutex_unlock(&pid_cid_list_lock);
-// }
+// Function to get next PID for a given PID
+int get_next_pid(int pid) {
 
-// Function to get the CID of give PID
-// int get_cid_from_pid(int pid){
-//         mutex_lock(&pid_cid_list_lock);
-//         struct list_head *pos;
-//         tmp = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
-//         list_for_each(pos, &pid_cid_map_list.list){
-//                 tmp = list_entry(pos, struct pid_cid_list, list);
-//                 if(tmp->pid == pid) {
-//                         mutex_unlock(&pid_cid_list_lock);
-//                         return tmp->cid;
-//                 }
-//         }
-//         mutex_unlock(&pid_cid_list_lock);
-//         return -1;
-// }
-//
-// // Function to get the CID of give PID
-// int get_next_pid(int pid){
-//         mutex_lock(&pid_cid_list_lock);
-//         __u64 cid = -1;
-//         struct list_head *pos;
-//         tmp = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
-//         list_for_each_safe(pos, q, &pid_cid_list.list){
-//                 tmp = list_entry(pos, struct pid_cid_list, list);
-//                 if(tmp->pid == pid) {
-//                         cid = tmp->cid;
-//                         // Delete and append at tail
-//                         tmp2 = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
-//                         tmp2->pid = pid;
-//                         tmp2->cid = cid;
-//                         list_del(pos);
-//                         list_add_tail(&(tmp2->list), &(pid_cid_map_list.list));
-//                         break;
-//                 }
-//         }
-//         if(cid != -1) {
-//                 list_for_each_entry(tmp, &pid_cid_map_list.list, list){
-//                         if(tmp->cid == cid) {
-//                                 mutex_unlock(&pid_cid_list_lock);
-//                                 return tmp->pid;
-//                         }
-//                 }
-//         }
-//         mutex_unlock(&pid_cid_list_lock);
-//         return -1;
-// }
+        int idx = -1;
+        __u64 cid = -1;
+        int next_pid = -1;
+        mutex_lock(&pid_cid_list_lock);
+        for(idx = 0; idx < total_pid; idx++) {
+                if(pid_cid_map_list[idx].pid == pid) {
+                        cid = pid_cid_map_list[idx].cid;
+                        break;
+                }
+        }
+        if(idx != -1) {
+                idx = (idx+1) % total_pid;
+                while(cid != pid_cid_map_list[idx].cid | !pid_cid_map_list[idx].is_valid) {
+                        idx = (idx+1) % total_pid;
+                }
+                next_pid = pid_cid_map_list[idx].pid;
+        } else {
+                printk("PID not found\n");
+        }
+        mutex_unlock(&pid_cid_list_lock);
+        return next_pid;
+}
 
 /**
  * Delete the task in the container.
@@ -396,27 +362,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
 
         // Add the PID-CID to mapping
         add_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
-        // // mutex_lock(&create_lock);
-        // struct processor_container_cmd *user_cmd_kernal;
-        // curr_pid_count += 1;
-        // // printk("Current PID count %d", curr_pid_count);
-        // mutex_lock(&p_id_to_c_id_lock);
-        // p_id_to_c_id = krealloc(p_id_to_c_id, curr_pid_count * 2 * sizeof(long long unsigned), GFP_KERNEL);
-        //
-        // user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
-        // copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
-        // printk("\nCID value: %llu\n", user_cmd_kernal->cid);
-        // printk("\nPID val: %d\n", current->pid);
-        // p_id_to_c_id[map2Dto1D(curr_pid_count-1, 0, col_size)] = current->pid;
-        // p_id_to_c_id[map2Dto1D(curr_pid_count-1, 1, col_size)] = user_cmd_kernal->cid;
-        // printk("\nStored PID in 0,0: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 0, col_size)]);
-        // printk("\nStored CID in 0,1: %llu\n", p_id_to_c_id[map2Dto1D(curr_pid_count - 1, 1, col_size)]);
-        // mutex_unlock(&p_id_to_c_id_lock);
-        //
-        // // mutex_unlock(&create_lock);
-        // printk("Lock Released step 1\n");
-        //
-        //
+
         // // STEP 2
         // printk("acquiring lock step 2\n");
         // // mutex_lock(&container_lock);
@@ -471,19 +417,16 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         // Display the current PID and CID
         printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
 
-        // long long unsigned current_pid = current->pid;
-        // long long unsigned curr_cid = get_cid_for_pid(current_pid);
-        // printk("\nFound for PID: %llu CID: %llu \n", current_pid, curr_cid);
-        //
-        // long long unsigned next_pid = get_next_pid(current_pid);
-        // printk("Next PID = %lld\n", next_pid);
-        //
-        // // Get task struct for next pid
-        // struct pid *pid_struct;
-        // pid_struct = find_get_pid(next_pid);
-        // struct task_struct *task;
-        // task = pid_task(pid_struct,PIDTYPE_PID);
-        //
+        // Get and display the next PID
+        int next_pid = get_next_pid(current_pid);
+        printk("Next PID: %d\n", next_pid);
+
+        // Get task struct for next pid
+        struct pid *pid_struct;
+        pid_struct = find_get_pid(next_pid);
+        struct task_struct *next_task;
+        next_task = pid_task(pid_struct, PIDTYPE_PID);
+
         // // Schedule current process
         // set_current_state(TASK_UNINTERRUPTIBLE);
         // printk("Updating map in switch");
