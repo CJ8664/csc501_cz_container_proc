@@ -44,6 +44,7 @@
 #include <linux/mutex.h>
 #include <linux/sched.h>
 #include <linux/kthread.h>
+#include <linux/list.h>
 
 #include <linux/pid_namespace.h>
 
@@ -169,74 +170,74 @@
 static DEFINE_MUTEX(pid_cid_list_lock);
 
 // Node of the list
-struct pid_cid_list {
+typedef struct {
         int pid;
         __u64 cid;
-        struct list_head list;
-}
+        int is_valid;
+} pid_cid_map;
 
 // List size
-__u64 list_size = 0;
+__u64 total_pid = 0;
 
 // Actual list
-struct pid_cid_list pid_cid_map_list;
+pid_cid_map *pid_cid_map_list;
 
 // Function to add PID-CID mapping
 void add_pid_cid_mapping(int pid, __u64 cid) {
         mutex_lock(&pid_cid_list_lock);
-        if(list_size == 0) {
-                LIST_HEAD(pid_cid_map_list);
-                list_size++;
-        }
-        tmp = (struct pid_cid_list *)malloc(sizeof(struct pid_cid_list));
-        tmp->pid = pid;
-        tmp->cid = cid;
-        list_add_tail(&(tmp->list), &(pid_cid_map_list.list));
+        total_pid++;
+        pid_cid_map_list = krealloc(pid_cid_map_list, total_pid * sizeof(struct pid_cid_map), GFP_KERNEL);
+        pid_cid_map_list[total_pid - 1]->pid = pid;
+        pid_cid_map_list[total_pid - 1]->cid = cid;
         mutex_unlock(&pid_cid_list_lock);
 }
 
 // Function to get the CID of give PID
-int get_cid_from_pid(int pid){
-        mutex_lock(&pid_cid_list_lock);
-        list_for_each(pos, &pid_cid_map_list.list){
-                tmp = list_entry(pos, struct pid_cid_list, list);
-                if(tmp->pid == pid) {
-                        mutex_unlock(&pid_cid_list_lock);
-                        return tmp->cid;
-                }
-        }
-        mutex_unlock(&pid_cid_list_lock);
-        return -1;
-}
-
-// Function to get the CID of give PID
-int get_next_pid(int pid){
-        mutex_lock(&pid_cid_list_lock);
-        __u64 cid = -1;
-        list_for_each_safe(pos, q, &pid_cid_list.list){
-                tmp = list_entry(pos, struct pid_cid_list, list);
-                if(tmp->pid == pid) {
-                        cid = tmp->cid;
-                        // Delete and append at tail
-                        tmp2 = (struct pid_cid_list *)malloc(sizeof(struct pid_cid_list));
-                        tmp2->pid = pid;
-                        tmp2->cid = cid;
-                        list_del(pos);
-                        list_add_tail(&(tmp2->list), &(pid_cid_map_list.list));
-                        break;
-                }
-        }
-        if(cid != -1) {
-                list_for_each_entry(tmp, &pid_cid_map_list.list, list){
-                        if(tmp->cid == cid) {
-                                mutex_unlock(&pid_cid_list_lock);
-                                return tmp->pid;
-                        }
-                }
-        }
-        mutex_unlock(&pid_cid_list_lock);
-        return -1;
-}
+// int get_cid_from_pid(int pid){
+//         mutex_lock(&pid_cid_list_lock);
+//         struct list_head *pos;
+//         tmp = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+//         list_for_each(pos, &pid_cid_map_list.list){
+//                 tmp = list_entry(pos, struct pid_cid_list, list);
+//                 if(tmp->pid == pid) {
+//                         mutex_unlock(&pid_cid_list_lock);
+//                         return tmp->cid;
+//                 }
+//         }
+//         mutex_unlock(&pid_cid_list_lock);
+//         return -1;
+// }
+//
+// // Function to get the CID of give PID
+// int get_next_pid(int pid){
+//         mutex_lock(&pid_cid_list_lock);
+//         __u64 cid = -1;
+//         struct list_head *pos;
+//         tmp = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+//         list_for_each_safe(pos, q, &pid_cid_list.list){
+//                 tmp = list_entry(pos, struct pid_cid_list, list);
+//                 if(tmp->pid == pid) {
+//                         cid = tmp->cid;
+//                         // Delete and append at tail
+//                         tmp2 = (struct pid_cid_list *)kmalloc(sizeof(struct pid_cid_list));
+//                         tmp2->pid = pid;
+//                         tmp2->cid = cid;
+//                         list_del(pos);
+//                         list_add_tail(&(tmp2->list), &(pid_cid_map_list.list));
+//                         break;
+//                 }
+//         }
+//         if(cid != -1) {
+//                 list_for_each_entry(tmp, &pid_cid_map_list.list, list){
+//                         if(tmp->cid == cid) {
+//                                 mutex_unlock(&pid_cid_list_lock);
+//                                 return tmp->pid;
+//                         }
+//                 }
+//         }
+//         mutex_unlock(&pid_cid_list_lock);
+//         return -1;
+// }
 
 /**
  * Delete the task in the container.
