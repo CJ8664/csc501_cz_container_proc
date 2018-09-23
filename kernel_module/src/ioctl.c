@@ -206,6 +206,37 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
         mutex_unlock(&pid_cid_list_lock);
 }
 
+__u64 get_cid_for_pid(int pid){
+        mutex_lock(&pid_cid_list_lock);
+        int idx;
+        __u64 cid = -1;
+        for(idx = 0; idx < total_pid; idx++) {
+                if(pid_cid_map_list[idx].pid == pid) {
+                        cid = pid_cid_map_list[idx].cid;
+                        break;
+                }
+        }
+        if(c == -1) {
+                printk("PID not available");
+                cid = 0;
+        }
+        mutex_unlock(&pid_cid_list_lock);
+        return cid;
+}
+
+// // Function to remove PID-CID mapping
+// void get_next_pid(int pid, __u64 cid) {
+//         mutex_lock(&pid_cid_list_lock);
+//         int idx;
+//         for(idx = 0; idx < total_pid; idx++) {
+//                 if(pid_cid_map_list[idx].pid == pid) {
+//                         pid_cid_map_list[idx].is_valid = 0;
+//                         break;
+//                 }
+//         }
+//         mutex_unlock(&pid_cid_list_lock);
+// }
+
 // Function to get the CID of give PID
 // int get_cid_from_pid(int pid){
 //         mutex_lock(&pid_cid_list_lock);
@@ -432,11 +463,11 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
  */
 int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 {
-        // Get the current PID and CID
-        // long long unsigned curr_cid = get_cid_for_pid(current_pid);
+        Get the current PID and CID
+        __u64 cid = get_cid_for_pid(current_pid);
 
         // Display the current PID and CID
-        // printk("Calling CREATE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+        printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
 
         // long long unsigned current_pid = current->pid;
         // long long unsigned curr_cid = get_cid_for_pid(current_pid);
