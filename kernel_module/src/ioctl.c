@@ -84,8 +84,8 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
           // Temp PID node
           cid_list->running_pids->pid = pid;
 
-          INIT_LIST_HEAD(&(cid_list->running_pids));
-          INIT_LIST_HEAD(&cid_list);
+          INIT_LIST_HEAD(&(cid_list->running_pids->list));
+          INIT_LIST_HEAD(&cid_list->list);
 
         } else {
 
