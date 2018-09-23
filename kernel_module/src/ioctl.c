@@ -117,7 +117,7 @@ void add_pid_cid_mapping(int pid, __u64 cid) {
             // Temp PID node
             temp_cid_node->running_pids->pid = pid;
 
-            INIT_LIST_HEAD(&(cid_list->running_pids->list));
+            INIT_LIST_HEAD(&(cid_list->running_pids)->list);
 
             // Addting to Main CID list
             list_add_tail(&(temp_cid_node->list), &(cid_list->list));
@@ -148,7 +148,7 @@ __u64 get_cid_for_pid(int pid){
           printk("CID %llu: ", temp_cid_node->cid);
 
           struct pid_node *temp_pid_node;
-          list_for_each_entry(temp_pid_node, &temp_cid_node->running_pids->list, list) {
+          list_for_each_entry(temp_pid_node, &(temp_cid_node->running_pids)->list, list) {
             printk("PID %d: ", temp_pid_node->pid);
             if(temp_pid_node->pid == pid){
               printk("CID %llu for PID %d: ", temp_cid_node->cid, pid);
