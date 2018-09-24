@@ -58,9 +58,9 @@ struct pid_node {
 };
 
 struct cid_node {
-  __u64 cid;
-  struct pid_node *running_pids;
-  struct cid_node *next;
+        __u64 cid;
+        struct pid_node *running_pids;
+        struct cid_node *next;
 };
 
 // Actual list that stores the CIDS and in it corresponding PIDS
@@ -70,86 +70,123 @@ struct cid_node *cid_list = NULL;
 __u64 total_cids = 0;
 
 // Linked List functions
-
 void print_ll(void) {
-  struct cid_node *temp_cid_node = cid_list;
-  while (temp_cid_node != NULL) {
-    printk("CID %llu: \n", temp_cid_node->cid);
-    struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+        struct cid_node *temp_cid_node = cid_list;
+        while (temp_cid_node != NULL) {
+                printk("CID %llu: \n", temp_cid_node->cid);
+                struct pid_node *temp_pid_node = temp_cid_node->running_pids;
 
-    while(temp_pid_node != NULL) {
-      printk("PID %d: \n", temp_pid_node->pid);
-      temp_pid_node = temp_pid_node->next;
-    }
+                while(temp_pid_node != NULL) {
+                        printk("PID %d: \n", temp_pid_node->pid);
+                        temp_pid_node = temp_pid_node->next;
+                }
 
-    temp_cid_node = temp_cid_node->next;
-  }
+                temp_cid_node = temp_cid_node->next;
+        }
 }
 
-void add_ll(__u64 new_cid, int new_pid) {
-  if(cid_list == NULL) {
-    cid_list = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
-    cid_list->cid = new_cid;
-    cid_list->next = NULL;
-    cid_list->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-    cid_list->running_pids->pid = new_pid;
-    cid_list->running_pids->next = NULL;
-  } else {
-    struct cid_node *prev_cid_node = NULL;
-    struct cid_node *temp_cid_node = cid_list;
-    int found = 0;
-    while (temp_cid_node != NULL) {
-      if(temp_cid_node->cid == new_cid) {
-        found = 1;
-        break;
-      }
-      prev_cid_node = temp_cid_node;
-      temp_cid_node = temp_cid_node->next;
-    }
-
-    if(!found) {
-      struct cid_node *new_cid_node = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
-      new_cid_node->cid = new_cid;
-      new_cid_node->next = NULL;
-      new_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-      new_cid_node->running_pids->pid = new_pid;
-      new_cid_node->running_pids->next = NULL;
-
-      prev_cid_node->next = new_cid_node;
-    } else { // Found 1
-
-      struct pid_node *prev_pid_node = NULL;
-      struct pid_node *temp_pid_node = temp_cid_node->running_pids;
-
-      while (temp_pid_node != NULL) {
-        prev_pid_node = temp_pid_node;
-        temp_pid_node = temp_pid_node->next;
-
-      }
-      struct pid_node *new_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
-      new_pid_node->next = NULL;
-      new_pid_node->pid = new_pid;
-
-      prev_pid_node->next = new_pid_node;
-    }
-    print_ll();
-  }
-}
 
 // Function to add PID-CID mapping
-void add_pid_cid_mapping(int pid, __u64 cid) {
+// return value of 1 indicates that the pid was first in container as was assigned to it
+int add_pid_cid_mapping(int pid, __u64 cid) {
+
         mutex_lock(&pid_cid_list_lock);
+        int available = 0;
+        if(cid_list == NULL) {
+                cid_list = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+                cid_list->cid = new_cid;
+                cid_list->next = NULL;
+                cid_list->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+                cid_list->running_pids->pid = new_pid;
+                cid_list->running_pids->next = NULL;
+                available = 1;
+        } else {
+                struct cid_node *prev_cid_node = NULL;
+                struct cid_node *temp_cid_node = cid_list;
+                int found = 0;
+                while (temp_cid_node != NULL) {
+                        if(temp_cid_node->cid == new_cid) {
+                                found = 1;
+                                break;
+                        }
+                        prev_cid_node = temp_cid_node;
+                        temp_cid_node = temp_cid_node->next;
+                }
 
-        add_ll(cid, pid);
+                if(!found) {
+                        struct cid_node *new_cid_node = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+                        new_cid_node->cid = new_cid;
+                        new_cid_node->next = NULL;
+                        new_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+                        new_cid_node->running_pids->pid = new_pid;
+                        new_cid_node->running_pids->next = NULL;
 
+                        prev_cid_node->next = new_cid_node;
+                        available = 1;
+                } else { // Found 1
+
+                        struct pid_node *prev_pid_node = NULL;
+                        struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+
+                        while (temp_pid_node != NULL) {
+                                prev_pid_node = temp_pid_node;
+                                temp_pid_node = temp_pid_node->next;
+
+                        }
+                        struct pid_node *new_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+                        new_pid_node->next = NULL;
+                        new_pid_node->pid = new_pid;
+
+                        prev_pid_node->next = new_pid_node;
+                }
+                print_ll();
+        }
         mutex_unlock(&pid_cid_list_lock);
+        return available;
 }
 
 // Function to remove PID-CID mapping
 void remove_pid_cid_mapping(int pid, __u64 cid) {
 
-        mutex_lock(&pid_cid_list_lock);
+        struct cid_node *curr_cid;
+        struct cid_node *prev_cid = NULL;
 
+        mutex_lock(&pid_cid_list_lock);
+        curr_cid = cid_list;
+        while (curr_cid != NULL) {
+                if(curr_cid->cid == cid) {
+                        // Container reference found
+                        struct pid_node *prev_pid = NULL;
+                        struct pid_node *curr_pid = curr_cid->running_pids;
+                        while(curr_pid != NULL) {
+                                if(pid == curr_pid->pid) {
+                                        if(prev_pid == NULL) {
+                                                // First node in list is to be removed
+                                                curr_cid->running_pids = curr_pid->next;
+                                        } else{
+                                                prev_pid->next = curr_pid->next;
+                                        }
+                                        kfree(curr_pid);
+                                        break;
+                                }
+                                prev_pid = curr_pid;
+                                curr_pid = curr_pid->next;
+                        }
+                        break;
+                }
+                prev_cid = curr_cid;
+                curr_cid = curr_cid->next;
+        }
+        if(curr_cid->running_pids == NULL) {
+                // If now the container does not have any processes left, remove the container
+                if(prev_cid == NULL) {
+                        cid_list = cid_list->next;
+                }
+                else{
+                        prev_cid->next = curr_cid->next;
+                }
+        }
+        print_ll();
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -157,21 +194,22 @@ __u64 get_cid_for_pid(int pid_to_find){
 
         int idx;
         __u64 cid = -1;
+        struct cid_node *temp_cid_node;
         mutex_lock(&pid_cid_list_lock);
+        temp_cid_node = cid_list;
 
-        struct cid_node *temp_cid_node = cid_list;
         while (temp_cid_node != NULL) {
-          struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+                struct pid_node *temp_pid_node = temp_cid_node->running_pids;
 
-          while(temp_pid_node != NULL) {
-            if(pid_to_find == temp_pid_node->pid) {
-               cid = temp_cid_node->cid;
-               break;
-            }
-            temp_pid_node = temp_pid_node->next;
-          }
+                while(temp_pid_node != NULL) {
+                        if(pid_to_find == temp_pid_node->pid) {
+                                cid = temp_cid_node->cid;
+                                break;
+                        }
+                        temp_pid_node = temp_pid_node->next;
+                }
 
-          temp_cid_node = temp_cid_node->next;
+                temp_cid_node = temp_cid_node->next;
         }
 
         mutex_unlock(&pid_cid_list_lock);
@@ -187,16 +225,16 @@ int get_next_pid(__u64 cid, int pid) {
         struct cid_node *temp_cid_node = cid_list;
         while (temp_cid_node != NULL) {
 
-          if(temp_cid_node->cid == cid) {
-            break;
-          }
+                if(temp_cid_node->cid == cid) {
+                        break;
+                }
 
-          temp_cid_node = temp_cid_node->next;
+                temp_cid_node = temp_cid_node->next;
         }
         if(temp_cid_node->running_pids->next != NULL) {
-          next_pid = temp_cid_node->running_pids->next->pid;
+                next_pid = temp_cid_node->running_pids->next->pid;
         } else {
-          next_pid = pid;
+                next_pid = pid;
         }
         mutex_unlock(&pid_cid_list_lock);
         return next_pid;
@@ -210,16 +248,6 @@ void assign_pid_to_cid(int pid, __u64 cid){
         mutex_unlock(&pid_cid_list_lock);
 }
 
-int is_container_available(int pid, __u64 cid) {
-
-        int idx;
-        int available = 1;
-        int pid_assigned_to = -1;
-        mutex_lock(&pid_cid_list_lock);
-
-        mutex_unlock(&pid_cid_list_lock);
-        return available;
-}
 
 /**
  * Delete the task in the container.
@@ -229,23 +257,23 @@ int is_container_available(int pid, __u64 cid) {
  */
 int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 {
-        return 0;
         // Get the current PID and CID
         struct processor_container_cmd *user_cmd_kernal;
-        // int next_pid = get_next_pid(current->pid);
-        //
-        // // To get the task_struct for next pid
-        // struct pid *pid_struct;
-        // struct task_struct *next_task;
-        //
-        // user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
-        // copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
-        //
-        // // Display the current PID and CID
-        // printk("Calling DELETE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
-        //
-        // // Remove PID-CID mapping
-        // remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
+        int next_pid = get_next_pid(current->pid);
+
+        // To get the task_struct for next pid
+        struct pid *pid_struct;
+        struct task_struct *next_task;
+
+        user_cmd_kernal = kmalloc(sizeof(struct processor_container_cmd), GFP_KERNEL);
+        copy_from_user(user_cmd_kernal, (void *)user_cmd, sizeof(struct processor_container_cmd));
+
+        // Display the current PID and CID
+        printk("Calling DELETE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+
+        // Remove PID-CID mapping
+        remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
+        return 0;
         //
         // // Get task struct for next pid
         // pid_struct = find_get_pid(next_pid);
@@ -276,15 +304,10 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         printk("Calling CREATE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
 
         // Add the PID-CID to mapping
-        add_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
-        return 0;
-
-        if(is_container_available(current->pid, user_cmd_kernal->cid)) {
-                assign_pid_to_cid(current->pid, user_cmd_kernal->cid);
-        } else {
+        if(!add_pid_cid_mapping(current->pid, user_cmd_kernal->cid)) {
                 // The container is occupied by some other processes
-                set_current_state(TASK_UNINTERRUPTIBLE);
-                schedule();
+                // set_current_state(TASK_UNINTERRUPTIBLE);
+                // schedule();
         }
         kfree(user_cmd_kernal);
         return 0;
@@ -301,10 +324,7 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
-        printk("CID: %llu -> PID: %d\n",  cid, current->pid);
         int next_pid = get_next_pid(cid, current->pid);
-        printk("Next PID: %d\n", next_pid);
-        return 0;
 
         // To get the task_struct for next pid
         struct pid *pid_struct;
@@ -313,6 +333,7 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         // Display the current PID and CID
         printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
         printk("Next PID: %d\n", next_pid);
+        return 0;
 
         // Get task struct for next pid
         pid_struct = find_get_pid(next_pid);
