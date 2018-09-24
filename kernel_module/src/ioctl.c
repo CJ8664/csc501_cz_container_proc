@@ -44,7 +44,7 @@
 #include <linux/mutex.h>
 #include <linux/sched.h>
 #include <linux/kthread.h>
-#include <linux/list.h>
+// #include <linux/list.h>
 
 #include <linux/pid_namespace.h>
 
@@ -87,7 +87,6 @@ void print_ll(void) {
                 temp_cid_node = temp_cid_node->next;
         }
 }
-
 
 // Function to add PID-CID mapping
 // return value of 1 indicates that the pid was first in container as was assigned to it
@@ -193,6 +192,7 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
         mutex_unlock(&pid_cid_list_lock);
 }
 
+// Find the Container ID for a given Process
 __u64 get_cid_for_pid(int pid_to_find){
 
         __u64 cid = -1;
@@ -218,31 +218,7 @@ __u64 get_cid_for_pid(int pid_to_find){
         return cid;
 }
 
-// Function to get next PID for a given PID
-// int get_next_pid(__u64 cid, int pid) {
-//
-//         int next_pid = -1;
-//         mutex_lock(&pid_cid_list_lock);
-//
-//         struct cid_node *temp_cid_node = cid_list;
-//         while (temp_cid_node != NULL) {
-//
-//                 if(temp_cid_node->cid == cid) {
-//                         break;
-//                 }
-//
-//                 temp_cid_node = temp_cid_node->next;
-//         }
-//         if(temp_cid_node->running_pids->next != NULL) {
-//                 next_pid = temp_cid_node->running_pids->next->pid;
-//         } else {
-//                 next_pid = pid;
-//         }
-//         mutex_unlock(&pid_cid_list_lock);
-//         return next_pid;
-// }
-
-// Returns The new next pid
+// Find the next process's PID that should run in a given container
 int get_next_run_pid_in_cid(__u64 cid){
 
         int next_pid = -1;
