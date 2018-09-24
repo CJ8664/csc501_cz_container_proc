@@ -142,7 +142,7 @@ int add_pid_cid_mapping(int new_pid, __u64 new_cid) {
 
                         prev_pid_node->next = new_pid_node;
                 }
-                print_ll();
+                // print_ll();
         }
         mutex_unlock(&pid_cid_list_lock);
         return available;
@@ -189,7 +189,7 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
                         prev_cid->next = curr_cid->next;
                 }
         }
-        print_ll();
+        // print_ll();
         mutex_unlock(&pid_cid_list_lock);
 }
 
@@ -256,25 +256,25 @@ int get_next_run_pid_in_cid(__u64 cid){
                 }
                 temp_cid_node = temp_cid_node->next;
         }
-        if(temp_cid_node != NULL){
-          // Save ref to first PID node
-          if(temp_cid_node->running_pids != NULL){
-            struct pid_node *first_pid = temp_cid_node->running_pids;
-            struct pid_node *last_pid = temp_cid_node->running_pids;
+        if(temp_cid_node != NULL) {
+                // Save ref to first PID node
+                if(temp_cid_node->running_pids != NULL) {
+                        struct pid_node *first_pid = temp_cid_node->running_pids;
+                        struct pid_node *last_pid = temp_cid_node->running_pids;
 
-            while(last_pid->next != NULL) {
-              last_pid = last_pid->next;
-            }
-            last_pid->next = first_pid;
-            temp_cid_node->running_pids = first_pid->next;
-            first_pid->next = NULL;
+                        while(last_pid->next != NULL) {
+                                last_pid = last_pid->next;
+                        }
+                        last_pid->next = first_pid;
+                        temp_cid_node->running_pids = first_pid->next;
+                        first_pid->next = NULL;
 
-            next_pid = temp_cid_node->running_pids->pid;
-          }
+                        next_pid = temp_cid_node->running_pids->pid;
+                }
         }
 
-        printk("get_next_run_pid_in_cid completed fro CID: %llu ", cid);
-        print_ll();
+        // printk("get_next_run_pid_in_cid completed fro CID: %llu ", cid);
+        // print_ll();
         mutex_unlock(&pid_cid_list_lock);
         return next_pid;
 }
@@ -309,10 +309,10 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
         // Schedule current process and wake up next process
-        if(next_task != NULL){
-          if(next_pid != current->pid){
-            wake_up_process(next_task);
-          }
+        if(next_task != NULL) {
+                if(next_pid != current->pid) {
+                        wake_up_process(next_task);
+                }
         }
 
         // Remove PID-CID mapping
@@ -341,7 +341,7 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         // Add the PID-CID to mapping
         if(!add_pid_cid_mapping(current->pid, user_cmd_kernal->cid)) {
                 // The container is occupied by some other processes
-                set_current_state(TASK_UNINTERRUPTIBLE);
+                set_current_state(TASK_INTERRUPTIBLE);
                 schedule();
         }
         kfree(user_cmd_kernal);
@@ -360,9 +360,9 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
 
-        if(cid == bad_cid){
-          printk("Calling SWITCH PID: %d is not part of process", current->pid);
-          return 0;
+        if(cid == bad_cid) {
+                printk("Calling SWITCH PID: %d is not part of process", current->pid);
+                return 0;
         }
         int next_pid = get_next_run_pid_in_cid(cid);
 
@@ -375,16 +375,16 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
         // Display the current PID and CID
-        printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
-        printk("Next PID: %d\n", next_pid);
+        // printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
+        // printk("Next PID: %d\n", next_pid);
 
         // Schedule current process and wake up next process
-        if(next_task != NULL){
-          if(next_pid != current->pid){
-            set_current_state(TASK_UNINTERRUPTIBLE);
-            wake_up_process(next_task);
-            schedule();
-          }
+        if(next_task != NULL) {
+                if(next_pid != current->pid) {
+                        set_current_state(TASK_INTERRUPTIBLE);
+                        wake_up_process(next_task);
+                        schedule();
+                }
         }
         return 0;
 }
