@@ -270,6 +270,8 @@ int get_next_run_pid_in_cid(__u64 cid){
           }
         }
 
+        printk("get_next_run_pid_in_cid completed fro CID: %llu ", cid);
+        print_ll();
         mutex_unlock(&pid_cid_list_lock);
         return next_pid;
 }
