@@ -312,9 +312,12 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
 
         // Schedule current process and wake up next process
-        // if(next_task != NULL){
-        //     wake_up_process(next_task);
-        //}
+
+        if(next_task != NULL){
+          if(next_pid != current->pid){
+            wake_up_process(next_task);
+          }
+        }
 
         return 0;
 }
@@ -340,8 +343,8 @@ int processor_container_create(struct processor_container_cmd __user *user_cmd)
         // Add the PID-CID to mapping
         if(!add_pid_cid_mapping(current->pid, user_cmd_kernal->cid)) {
                 // The container is occupied by some other processes
-                // set_current_state(TASK_UNINTERRUPTIBLE);
-                // schedule();
+                set_current_state(TASK_UNINTERRUPTIBLE);
+                schedule();
         }
         kfree(user_cmd_kernal);
         return 0;
@@ -376,15 +379,15 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         // Display the current PID and CID
         printk("Calling SWITCH PID: %d CID: %llu\n", current->pid, cid);
         printk("Next PID: %d\n", next_pid);
-        return 0;
 
         // Schedule current process and wake up next process
-        // set_current_state(TASK_UNINTERRUPTIBLE);
-        // if(next_task != NULL){
-        //    wake_up_process(next_task);
-        // }
-        // schedule();
-
+        if(next_pid != current->pid){
+          set_current_state(TASK_UNINTERRUPTIBLE);
+          if(next_task != NULL){
+             wake_up_process(next_task);
+          }
+          schedule();
+        }
         return 0;
 }
 
