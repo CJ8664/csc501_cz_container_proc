@@ -69,6 +69,9 @@ struct cid_node *cid_list = NULL;
 // List size
 __u64 total_cids = 0;
 
+// Bad CID
+__u64 bad_cid = -1;
+
 // Linked List functions
 void print_ll(void) {
         struct cid_node *temp_cid_node = cid_list;
@@ -355,6 +358,11 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
+
+        if(cid == bad_cid){
+          printk("Calling SWITCH PID: %d is not part of process", current->pid);
+          return 0;
+        }
         int next_pid = get_next_run_pid_in_cid(cid);
 
         // To get the task_struct for next pid
