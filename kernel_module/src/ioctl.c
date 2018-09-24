@@ -308,17 +308,15 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
         pid_struct = find_get_pid(next_pid);
         next_task = pid_task(pid_struct, PIDTYPE_PID);
 
-        // Remove PID-CID mapping
-        remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
-
         // Schedule current process and wake up next process
-
         if(next_task != NULL){
           if(next_pid != current->pid){
             wake_up_process(next_task);
           }
         }
 
+        // Remove PID-CID mapping
+        remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
         return 0;
 }
 
@@ -381,12 +379,12 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
         printk("Next PID: %d\n", next_pid);
 
         // Schedule current process and wake up next process
-        if(next_pid != current->pid){
-          set_current_state(TASK_UNINTERRUPTIBLE);
-          if(next_task != NULL){
-             wake_up_process(next_task);
+        if(next_task != NULL){
+          if(next_pid != current->pid){
+            set_current_state(TASK_UNINTERRUPTIBLE);
+            wake_up_process(next_task);
+            schedule();
           }
-          schedule();
         }
         return 0;
 }
