@@ -353,7 +353,7 @@ int processor_container_switch(struct processor_container_cmd __user *user_cmd)
 
         // Get the current PID, CID and next PID
         __u64 cid = get_cid_for_pid(current->pid);
-        int next_pid = get_next_run_pid_in_cid(cid, current->pid);
+        int next_pid = get_next_run_pid_in_cid(cid);
 
         // To get the task_struct for next pid
         struct pid *pid_struct;
