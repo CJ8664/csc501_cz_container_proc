@@ -88,7 +88,7 @@ void print_ll(void) {
 
 // Function to add PID-CID mapping
 // return value of 1 indicates that the pid was first in container as was assigned to it
-int add_pid_cid_mapping(int pid, __u64 cid) {
+int add_pid_cid_mapping(int new_pid, __u64 new_cid) {
 
         mutex_lock(&pid_cid_list_lock);
         int available = 0;
@@ -192,7 +192,6 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
 
 __u64 get_cid_for_pid(int pid_to_find){
 
-        int idx;
         __u64 cid = -1;
         struct cid_node *temp_cid_node;
         mutex_lock(&pid_cid_list_lock);
@@ -259,7 +258,7 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 {
         // Get the current PID and CID
         struct processor_container_cmd *user_cmd_kernal;
-        int next_pid = get_next_pid(current->pid);
+        int next_pid;
 
         // To get the task_struct for next pid
         struct pid *pid_struct;
@@ -270,6 +269,8 @@ int processor_container_delete(struct processor_container_cmd __user *user_cmd)
 
         // Display the current PID and CID
         printk("Calling DELETE PID: %d CID: %llu\n", current->pid, user_cmd_kernal->cid);
+
+        next_pid = get_next_pid(user_cmd_kernal->cid, current->pid);
 
         // Remove PID-CID mapping
         remove_pid_cid_mapping(current->pid, user_cmd_kernal->cid);
