@@ -98,7 +98,7 @@ int add_pid_cid_mapping(int new_pid, __u64 new_cid) {
 
         int available;
         int found;
-
+        struct pid_node *new_pid_node;
         mutex_lock(&pid_cid_list_lock);
         available = 0;
         found = 0;
@@ -127,7 +127,7 @@ int add_pid_cid_mapping(int new_pid, __u64 new_cid) {
 
                 if(!found) {
                         // If container not found
-                        struct cid_node *new_cid_node = (struct cid_node *) kmalloc(sizeof(struct cid_node), GFP_KERNEL);
+                        struct cid_node *new_cid_node = (struct cid_node *)kmalloc(sizeof(struct cid_node), GFP_KERNEL);
                         new_cid_node->cid = new_cid;
                         new_cid_node->next = NULL;
                         new_cid_node->running_pids = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
@@ -144,7 +144,7 @@ int add_pid_cid_mapping(int new_pid, __u64 new_cid) {
                                 temp_pid_node = temp_pid_node->next;
 
                         }
-                        struct pid_node *new_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
+                        new_pid_node = (struct pid_node *)kmalloc(sizeof(struct pid_node), GFP_KERNEL);
                         new_pid_node->next = NULL;
                         new_pid_node->pid = new_pid;
                         prev_pid_node->next = new_pid_node;
