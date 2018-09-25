@@ -136,7 +136,7 @@ int add_pid_cid_mapping(int new_pid, __u64 new_cid) {
                         prev_cid_node->next = new_cid_node;
                         available = 1;
                 } else {
-                        // If container  found
+                        // If container found
                         struct pid_node *prev_pid_node = NULL;
                         struct pid_node *temp_pid_node = temp_cid_node->running_pids;
                         while (temp_pid_node != NULL) {
