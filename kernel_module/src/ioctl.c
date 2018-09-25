@@ -77,9 +77,10 @@ __u64 bad_cid = -1;
  */
 void print_list(void) {
         struct cid_node *temp_cid_node = cid_list;
+        struct pid_node *temp_pid_node;
         while (temp_cid_node != NULL) {
                 printk("CID %llu: --> PIDs: ", temp_cid_node->cid);
-                struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+                temp_pid_node = temp_cid_node->running_pids;
                 while(temp_pid_node != NULL) {
                         printk("%d ", temp_pid_node->pid);
                         temp_pid_node = temp_pid_node->next;
