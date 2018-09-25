@@ -163,14 +163,18 @@ void remove_pid_cid_mapping(int pid, __u64 cid) {
         struct cid_node *curr_cid;
         struct cid_node *prev_cid = NULL;
 
+        // List iteration pointera
+        struct pid_node *prev_pid;
+        struct pid_node *curr_pid;
+
         mutex_lock(&pid_cid_list_lock);
         curr_cid = cid_list;
 
         while (curr_cid != NULL) {
                 if(curr_cid->cid == cid) {
                         // Container reference found
-                        struct pid_node *prev_pid = NULL;
-                        struct pid_node *curr_pid = curr_cid->running_pids;
+                        prev_pid = NULL;
+                        curr_pid = curr_cid->running_pids;
                         while(curr_pid != NULL) {
                                 if(pid == curr_pid->pid) {
                                         if(prev_pid == NULL) {
@@ -210,12 +214,13 @@ __u64 get_cid_for_pid(int pid_to_find){
 
         __u64 cid = -1;
         struct cid_node *temp_cid_node;
+        struct pid_node *temp_pid_node;
 
         mutex_lock(&pid_cid_list_lock);
         temp_cid_node = cid_list;
 
         while (temp_cid_node != NULL) {
-                struct pid_node *temp_pid_node = temp_cid_node->running_pids;
+                temp_pid_node = temp_cid_node->running_pids;
                 while(temp_pid_node != NULL) {
                         if(pid_to_find == temp_pid_node->pid) {
                                 cid = temp_cid_node->cid;
@@ -236,9 +241,11 @@ __u64 get_cid_for_pid(int pid_to_find){
 int get_next_pid_in_cid(__u64 cid){
 
         int next_pid = -1;
-        mutex_lock(&pid_cid_list_lock);
+        struct cid_node *temp_cid_node;
 
-        struct cid_node *temp_cid_node = cid_list;
+        mutex_lock(&pid_cid_list_lock);
+        temp_cid_node = cid_list;
+
         while (temp_cid_node != NULL) {
                 // Get the Container reference
                 if(temp_cid_node->cid == cid) {
